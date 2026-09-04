@@ -22,5 +22,9 @@ logs/*.log
 demo_workspace/
 
 # Network captures are large; keep them out of Git and attach them to the report
+captures/
 *.pcapng
 *.pcap
+
+# TLS session keys can decrypt a capture forever. Never commit, never submit.
+tls-keys.log

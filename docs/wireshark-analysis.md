@@ -76,7 +76,10 @@ implements the protocol itself rather than delegating to an SDK: it is the code
 writing and reading the bytes.
 
 ```bash
-# every frame of the session, classified
+# the scripted way (recommended)
+uv run python scripts/analyze_capture.py captures/mcp-capture.pcapng
+
+# or by hand: every frame of the session, classified
 python -c "import json,sys;[print(r['direction'],r['kind'],'SYNC' if r['lifecycle'] else 'call',r['method'],r['id'],r['server']) for r in map(json.loads,open(sys.argv[1],encoding='utf-8'))]" logs/session-<uuid>.wire.jsonl
 
 # counts by kind, which is the table the report needs
@@ -106,6 +109,105 @@ is `tools/list` and `tools/call` with their replies.
 - [ ] One captured example of each of the four kinds, quoted from the packet bytes.
 
 ---
+
+---
+
+## Quick start: a complete capture in four commands
+
+This path is verified end to end on Windows with Wireshark and Npcap installed.
+It needs **no API key**, because the scenario is driven by a fixed script rather
+than by the model — which also makes the capture reproducible.
+
+**Terminal 1 — the remote server**
+
+```bash
+cd remote_server
+HOST=127.0.0.1 PORT=8080 uv run pet-care-mcp
+```
+
+**Terminal 2 — capture, run, analyse**
+
+```bash
+cd adoptamatch-chatbot
+mkdir -p captures && rm -f logs/* captures/*.pcapng
+
+# 1. start capturing on the loopback adapter (35 s is plenty)
+"/c/Program Files/Wireshark/dumpcap.exe" -i "\\Device\\NPF_Loopback" \
+    -f "tcp port 8080" -w captures/mcp-capture.pcapng -a duration:35 &
+
+# 2. drive the remote server: handshake, discovery, three tool calls, DELETE
+uv run python scripts/demo_remote_capture.py
+
+# 3. once dumpcap exits, correlate the capture with the wire log
+uv run python scripts/analyze_capture.py captures/mcp-capture.pcapng
+```
+
+In PowerShell, step 1 is:
+
+```powershell
+Start-Process -NoNewWindow "C:\Program Files\Wireshark\dumpcap.exe" `
+  -ArgumentList '-i','\Device\NPF_Loopback','-f','tcp port 8080',
+                '-w','captures\mcp-capture.pcapng','-a','duration:35'
+```
+
+`scripts/analyze_capture.py` reads the JSON-RPC **out of the packet bytes**, not
+out of the log, and then checks the two against each other. Real output from a
+verified run:
+
+```text
+--------------------------- transport layer (TCP) ---------------------------
+packets in the capture:        59
+TCP connections opened:        1
+SYN / SYN-ACK frames:          1, 2
+FIN / RST frames:              54, 57
+retransmissions:               0
+client -> server:              127.0.0.1:55566 -> 127.0.0.1:8080
+--------------------- application layer (HTTP + JSON-RPC) --------------------
+  frame  time          src -> dst                     bytes  http         kind          class            method / id
+      6  21:44:02.318  127.0.0.1:55566 -> :8080         227  POST /mcp    request       synchronisation  initialize id=1
+     10  21:44:02.319  127.0.0.1:8080  -> :55566        690  HTTP 200     response      synchronisation  initialize id=1
+     14  21:44:02.321  127.0.0.1:55566 -> :8080         101  POST /mcp    notification  synchronisation  notifications/initialized
+     16  21:44:02.322  127.0.0.1:8080  -> :55566        142  HTTP 202
+     20  21:44:02.323  127.0.0.1:55566 -> :8080          95  POST /mcp    request       call             tools/list id=2
+     24  21:44:02.324  127.0.0.1:8080  -> :55566       4097  HTTP 200     response      call             tools/list id=2
+     28  21:44:02.338  127.0.0.1:55566 -> :8080         225  POST /mcp    request       call             tools/call id=3
+     32  21:44:02.343  127.0.0.1:8080  -> :55566       2299  HTTP 200     response      call             tools/call id=3
+     36  ...                                                                            (id=4, id=5)
+     50  21:44:02.358  127.0.0.1:55566 -> :8080         341  DELETE /mcp
+     52  21:44:02.359  127.0.0.1:8080  -> :55566        125  HTTP 204
+------------- JSON-RPC classification, from the packet bytes -----------------
+  notification  synchronisation  1
+  request       call             4
+  request       synchronisation  1
+  response      call             4
+  response      synchronisation  1
+  total                          11
+------------------ cross-check against the host's wire log -------------------
+frames in the wire log:        11
+JSON-RPC messages in capture:  11
++ The capture and the log agree: every logged message is on the wire.
+```
+
+Three observations from that run are worth putting straight into the report:
+
+1. **One TCP connection carried all eleven JSON-RPC messages.** Streamable HTTP
+   reuses the connection; a naive design would have opened one per call. That is
+   the single most interesting transport-layer fact in the capture.
+2. **The `202 Accepted` at frame 16 has no body** — it answers
+   `notifications/initialized`, and a JSON-RPC notification has no `id`, so there
+   is nothing to respond with.
+3. **Zero retransmissions**, because loopback has no medium to lose anything on.
+   Say that explicitly rather than leaving the section blank.
+
+Then open the same file in the Wireshark GUI for the screenshots:
+
+```bash
+"/c/Program Files/Wireshark/Wireshark.exe" captures/mcp-capture.pcapng
+```
+
+The rest of this document is the manual walkthrough, for the parts a script
+cannot do for you: choosing the interface on a different machine, reading the
+layers off the packet detail pane, and capturing against a deployed HTTPS URL.
 
 ## 2. Prepare a clean session
 
