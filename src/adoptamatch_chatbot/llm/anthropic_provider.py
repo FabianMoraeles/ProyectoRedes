@@ -59,6 +59,17 @@ class AnthropicProvider:
             ) from exc
         except anthropic.RateLimitError as exc:
             raise LLMError("Anthropic rate limit reached. Wait a moment and try again.") from exc
+        except anthropic.BadRequestError as exc:
+            # An empty balance is by far the most common 400 for a new account, and
+            # the generic "HTTP 400" below tells the user nothing useful about it.
+            if "credit balance" in (exc.message or "").lower():
+                raise LLMError(
+                    "The API key is valid, but the account has no credit balance. "
+                    "Open https://console.anthropic.com/ -> Plans & Billing to claim the "
+                    "free trial credit or add credits. Meanwhile, --offline exercises "
+                    "everything except the model."
+                ) from exc
+            raise LLMError(f"Anthropic rejected the request: {exc.message}") from exc
         except anthropic.APIConnectionError as exc:
             raise LLMError(f"Could not reach the Anthropic API: {exc}") from exc
         except anthropic.APIStatusError as exc:
