@@ -101,7 +101,10 @@ def decode_body(hex_body: str) -> dict[str, Any] | None:
 
 def load_wire_log(path: Path | None) -> list[dict[str, Any]]:
     if path is None:
-        candidates = sorted(glob.glob("logs/*.wire.jsonl"))
+        # Sort by modification time, not by name: the file name carries a UUID,
+        # so an alphabetical sort would pick an arbitrary session rather than the
+        # most recent one.
+        candidates = sorted(glob.glob("logs/*.wire.jsonl"), key=lambda name: Path(name).stat().st_mtime)
         if not candidates:
             return []
         path = Path(candidates[-1])

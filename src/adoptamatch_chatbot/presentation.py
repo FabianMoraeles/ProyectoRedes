@@ -133,7 +133,11 @@ class Presenter:
         disable_colour = no_color or bool(os.environ.get("NO_COLOR"))
         self.console = console or Console(no_color=disable_colour)
         self.verbose = verbose
-        self.glyphs = GLYPHS_ASCII if (ascii_only or not _supports_unicode(self.console)) else GLYPHS_UNICODE
+        #: Whether the output stream can encode the Unicode glyph set. False for a
+        #: Windows console in a legacy code page, and for output redirected into a
+        #: file opened with such an encoding.
+        self.unicode = not ascii_only and _supports_unicode(self.console)
+        self.glyphs = GLYPHS_UNICODE if self.unicode else GLYPHS_ASCII
 
     # ------------------------------------------------------------------ basics
 
@@ -334,8 +338,15 @@ class Presenter:
     # ------------------------------------------------------------ conversation
 
     def thinking(self, message: str = "thinking") -> Any:
-        """A spinner that says *what* is happening, not just that something is."""
-        return self.console.status(Text(f"{message}...", style=STYLE["meta"]), spinner="dots")
+        """A spinner that says *what* is happening, not just that something is.
+
+        The default ``dots`` spinner is drawn with braille characters, which a
+        Windows console in a legacy code page cannot encode -- and rich raises
+        rather than degrading, which aborts the run. Fall back to the ASCII
+        spinner whenever the stream cannot encode the glyph set.
+        """
+        spinner = "dots" if self.unicode else "line"
+        return self.console.status(Text(f"{message}...", style=STYLE["meta"]), spinner=spinner)
 
     def tool_call(self, name: str, server: str, arguments: dict[str, Any]) -> None:
         """Announce a tool call before it runs, so a slow call is never a mystery."""

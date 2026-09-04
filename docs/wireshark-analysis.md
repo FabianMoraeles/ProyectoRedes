@@ -110,8 +110,6 @@ is `tools/list` and `tools/call` with their replies.
 
 ---
 
----
-
 ## Quick start: a complete capture in four commands
 
 This path is verified end to end on Windows with Wireshark and Npcap installed.
