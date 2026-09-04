@@ -1,0 +1,121 @@
+# AdoptaMatch chatbot - MCP server inventory
+#
+# Copy this file to `servers.toml` and adjust the paths, then run the chatbot.
+# `servers.toml` is git-ignored so your local paths never reach the repository.
+#
+# Every entry accepts:
+#   name             required, unique, alphanumeric (- and _ allowed).
+#                    Used in logs, in /servers and to qualify colliding tool names.
+#   transport        "stdio" (the host spawns a subprocess) or "streamable-http".
+#   enabled          false keeps the entry documented but never connects it.
+#   description      free text shown by /servers.
+#   command, args    stdio only: the executable and its arguments.
+#   env              stdio only: extra environment variables for the subprocess.
+#   cwd              stdio only: working directory, resolved RELATIVE TO THIS FILE.
+#   url              streamable-http only: the MCP endpoint, usually ending in /mcp.
+#   mode             "auto" (default) probes server/discover first and, if that
+#                    attempt fails or times out, the host retries with the classic
+#                    `initialize` handshake. "legacy" goes straight to the
+#                    handshake. Use "legacy" for servers you already know are
+#                    handshake-era (it saves one failed attempt at start-up) and
+#                    for the Wireshark capture, so `initialize` is on the wire in
+#                    the shape the report describes.
+#   timeout_seconds  per-tools/call timeout enforced by the host.
+#   connect_timeout_seconds
+#                    ceiling on one connection attempt, so a server that never
+#                    answers the negotiation cannot stall start-up.
+#
+# Windows note: `npx` and `uvx` are resolved to `npx.cmd` / `uvx.exe` automatically
+# by the MCP SDK, so the same entry works on Windows and on Linux. If your shell
+# cannot find them at all, install Node.js (for npx) and uv (for uvx) first.
+
+# ---------------------------------------------------------------- own local server
+
+[[servers]]
+name = "adoptamatch"
+transport = "stdio"
+enabled = true
+description = "Own server: shelter search, explainable matching, comparison, adoption"
+command = "uv"
+args = ["run", "adoptamatch-mcp"]
+cwd = "../../adoptamatch-mcp"
+timeout_seconds = 30
+connect_timeout_seconds = 60
+
+# ------------------------------------------------------- official reference servers
+
+# Scoped to ./demo_workspace ONLY. Never point this at your home directory or at
+# the drive root: the model can read and write anything inside the scope it is given.
+[[servers]]
+name = "filesystem"
+transport = "stdio"
+enabled = true
+description = "Official reference server, scoped to ./demo_workspace"
+command = "npx"
+args = ["-y", "@modelcontextprotocol/server-filesystem", "demo_workspace"]
+cwd = ".."
+# This server is handshake-era: it neither answers nor rejects the server/discover
+# probe, so an "auto" attempt would sit there until it times out. Going straight to
+# "legacy" connects in under a second.
+mode = "legacy"
+timeout_seconds = 60
+connect_timeout_seconds = 45
+
+# Scoped to the throw-away repository ./demo_workspace/demo-repo.
+# Create it once with:  git init demo_workspace/demo-repo
+[[servers]]
+name = "git"
+transport = "stdio"
+enabled = true
+description = "Official reference server, scoped to ./demo_workspace/demo-repo"
+command = "uvx"
+args = ["mcp-server-git", "--repository", "demo_workspace/demo-repo"]
+cwd = ".."
+# Handshake-era as well: an "auto" attempt makes it log a 31-error validation
+# warning for the unknown server/discover method before falling back.
+mode = "legacy"
+timeout_seconds = 90
+# uvx may need to download the package on the very first run.
+connect_timeout_seconds = 120
+
+# -------------------------------------------------------- own remote server (HTTP)
+
+# Start it locally with:
+#   cd remote_server && uv run pet-care-mcp
+# or point the url at your deployed instance. `mode = "legacy"` makes the
+# `initialize` handshake explicit, which is what docs/wireshark-analysis.md captures.
+[[servers]]
+name = "pet_care_remote"
+transport = "streamable-http"
+enabled = false
+description = "Own remote server over Streamable HTTP (daily care checklist, water estimate)"
+url = "http://127.0.0.1:8080/mcp"
+mode = "legacy"
+timeout_seconds = 30
+
+# ------------------------------------------------------- classmates' MCP servers
+
+# Placeholders. Fill in the real command/url once the servers are chosen, flip
+# `enabled` to true, and record what each one does in docs/server-specifications.md.
+# Read a classmate's code before enabling it: a stdio server runs with your
+# privileges on your machine.
+
+[[servers]]
+name = "classmate_server_1"
+transport = "stdio"
+enabled = false
+description = "TO BE FILLED IN - classmate server #1"
+command = "uv"
+args = ["run", "REPLACE-ME"]
+cwd = ".."
+timeout_seconds = 60
+
+[[servers]]
+name = "classmate_server_2"
+transport = "stdio"
+enabled = false
+description = "TO BE FILLED IN - classmate server #2"
+command = "uv"
+args = ["run", "REPLACE-ME"]
+cwd = ".."
+timeout_seconds = 60
