@@ -1,0 +1,26 @@
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+build/
+dist/
+*.egg-info/
+
+# Secrets and machine-specific configuration
+.env
+config/servers.toml
+*.key
+*.pem
+
+# Session artefacts
+logs/*.jsonl
+logs/*.log
+!logs/.gitkeep
+
+# Demo scratch area created by the Filesystem/Git scenario
+demo_workspace/
+
+# Network captures are large; keep them out of Git and attach them to the report
+*.pcapng
+*.pcap
