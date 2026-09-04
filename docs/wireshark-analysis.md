@@ -140,11 +140,13 @@ uv run python scripts/demo_remote_capture.py
 uv run python scripts/analyze_capture.py captures/mcp-capture.pcapng
 ```
 
-In PowerShell, step 1 is:
+In PowerShell, step 1 is the following. Note the **double quotes inside the
+single quotes** around the filter: without them PowerShell splits `tcp port 8080`
+into three arguments and dumpcap rejects it with `Invalid argument: 8080`.
 
 ```powershell
 Start-Process -NoNewWindow "C:\Program Files\Wireshark\dumpcap.exe" `
-  -ArgumentList '-i','\Device\NPF_Loopback','-f','tcp port 8080',
+  -ArgumentList '-i','\Device\NPF_Loopback','-f','"tcp port 8080"',
                 '-w','captures\mcp-capture.pcapng','-a','duration:35'
 ```
 
