@@ -164,7 +164,7 @@ For the Filesystem and Git scenario, create the scoped demo areas once:
 
 ```bash
 mkdir -p demo_workspace
-git init demo_workspace/demo-repo
+git init -b main demo_workspace/demo-repo
 git -C demo_workspace/demo-repo config user.name  "AdoptaMatch Demo"
 git -C demo_workspace/demo-repo config user.email "demo@example.invalid"
 ```
@@ -408,6 +408,7 @@ the source.
 | The remote server shows `failed` | It is not running, or the port differs. Check `curl http://127.0.0.1:8080/healthz`. |
 | A tool result looks truncated in the log | Only in the log: payloads over 4000 characters are capped there. The model received the full result. |
 | Unreadable server output on the console | It should not appear — stdio servers' stderr goes to `logs/session-<id>.<server>.stderr.log`. Look there for the real error. |
+| `git_add` fails with `Filename too long` (Windows) | The clone sits under a very deep path and Git hits `MAX_PATH`. Move the repository closer to the drive root, or enable long paths: `git config --system core.longpaths true` (needs an elevated shell). |
 
 ## Security notes
 
