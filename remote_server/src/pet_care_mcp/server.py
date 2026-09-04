@@ -1,5 +1,9 @@
 """pet-care-mcp: a small MCP server served over **Streamable HTTP**.
 
+The protocol is implemented directly over JSON-RPC 2.0 in
+:mod:`pet_care_mcp.minimcp` (a verbatim copy of the file in the public
+``adoptamatch-mcp`` repository). **No MCP SDK is used.**
+
 The business logic is deliberately simple. The point of this server is the
 *transport*: it is the component that puts MCP on a TCP socket, which is what the
 network-analysis part of the project captures and dissects.
@@ -23,11 +27,11 @@ from __future__ import annotations
 import os
 from typing import Annotated, Literal
 
-from mcp.server.mcpserver import MCPServer
-from mcp.server.mcpserver.exceptions import ToolError
 from pydantic import BaseModel, Field
 from starlette.requests import Request
 from starlette.responses import JSONResponse
+
+from pet_care_mcp.minimcp import MCPServer, ToolError, run_http
 
 __version__ = "1.0.0"
 
@@ -50,7 +54,7 @@ relay the disclaimer it returns. If the user describes symptoms, illness, injury
 medication, say that this needs a veterinarian instead of calling these tools.
 """
 
-server: MCPServer = MCPServer(
+server = MCPServer(
     name="pet-care",
     title="Pet Care Guidance (remote)",
     version=__version__,
@@ -85,7 +89,8 @@ class WaterEstimate(BaseModel):
     species: Species
     weight_kg: float
     estimated_ml_per_day: int
-    range_ml_per_day: tuple[int, int]
+    range_low_ml_per_day: int
+    range_high_ml_per_day: int
     basis: str
     disclaimer: str = DISCLAIMER
 
@@ -198,12 +203,13 @@ def estimate_daily_water_ml(
         species=species,
         weight_kg=weight_kg,
         estimated_ml_per_day=round((low + high) / 2),
-        range_ml_per_day=(low, high),
+        range_low_ml_per_day=low,
+        range_high_ml_per_day=high,
         basis=f"{low_per_kg}-{high_per_kg} ml per kg per day for a healthy {species}.",
     )
 
 
-@server.custom_route("/healthz", methods=["GET"])
+@server.route("/healthz", methods=["GET"])
 async def healthz(_request: Request) -> JSONResponse:
     """Plain HTTP health check for the hosting platform.
 
@@ -217,7 +223,7 @@ def main() -> None:
     """Console entry point. ``HOST`` and ``PORT`` follow the usual cloud contract."""
     host = os.environ.get("HOST", "127.0.0.1")
     port = int(os.environ.get("PORT", "8080"))
-    server.run(transport="streamable-http", host=host, port=port, streamable_http_path="/mcp")
+    run_http(server, host=host, port=port, mcp_path="/mcp")
 
 
 if __name__ == "__main__":

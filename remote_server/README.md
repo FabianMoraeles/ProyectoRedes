@@ -8,6 +8,10 @@ The business logic is deliberately simple. The point of this server is the
 **transport**: it is the component of the project that puts MCP on a TCP socket,
 and therefore the one the network analysis can actually observe.
 
+The protocol is implemented **directly over JSON-RPC 2.0** in
+[`minimcp.py`](src/pet_care_mcp/minimcp.py) — a verbatim copy of the file in the
+public `adoptamatch-mcp` repository. **No MCP SDK is used at runtime.**
+
 ## Tools
 
 ### `get_daily_care_checklist(species, life_stage, energy_level)`
@@ -34,7 +38,7 @@ level), scaled by a life-stage factor (`puppy_kitten` 0.7, `adult` 1.0,
 | `species` | string | `dog`, `cat` |
 | `weight_kg` | number | greater than 0, at most 120 |
 
-Returns `{species, weight_kg, estimated_ml_per_day, range_ml_per_day, basis, disclaimer}`.
+Returns `{species, weight_kg, estimated_ml_per_day, range_low_ml_per_day, range_high_ml_per_day, basis, disclaimer}`.
 The range is 50–70 ml/kg/day for a dog and 45–60 ml/kg/day for a cat; the point
 estimate is the midpoint. A weight outside the accepted range returns
 `isError: true` with the reason.
@@ -59,6 +63,7 @@ not something a model should be able to call, and it must not appear in
 
 - Python 3.10+
 - [uv](https://docs.astral.sh/uv/)
+- No MCP SDK: the runtime dependencies are `pydantic`, `starlette` and `uvicorn`.
 
 ## Running locally
 
@@ -79,7 +84,6 @@ name = "pet_care_remote"
 transport = "streamable-http"
 enabled = true
 url = "http://127.0.0.1:8080/mcp"
-mode = "legacy"
 ```
 
 Or with MCP Inspector:
@@ -105,15 +109,22 @@ Deployment to Google Cloud Run — with the cost and risk stated up front — is
 ## Tests
 
 ```bash
-uv run pytest -q     # 11 tests
+uv run pytest -q     # 18 tests
 uv run ruff check .
 ```
 
-The suite covers the tool logic, input validation and the tools that must *not*
-exist — and it includes a **real Streamable HTTP round trip**: uvicorn is started
-on an ephemeral port in a background thread and a real `mcp.client.Client`
-connects over TCP and runs `tools/list` and `tools/call`, in both `auto` and
-`legacy` negotiation modes.
+Three levels:
+
+1. **Raw JSON-RPC** — the handshake, `tools/list`, `tools/call`, input validation,
+   the tools that must *not* exist, and `-32601` for an unknown method.
+2. **Real Streamable HTTP** — uvicorn on an ephemeral port, exercised with an HTTP
+   client: the session id issued at `initialize`, `202 Accepted` with no body for a
+   notification, `204` for the `DELETE` that ends the session, a parse error rather
+   than a 500 for a malformed body, and `405` for the optional `GET` stream this
+   server declines to hold open.
+3. **Interoperability** — the **official MCP SDK client** driving this
+   hand-written server over TCP, in both of its negotiation modes. The SDK is a
+   development dependency only.
 
 ## Limitations
 

@@ -5,9 +5,11 @@ description = "Small MCP server served over Streamable HTTP: generic pet care gu
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [{ name = "Fabian Mora" }]
+# MCP is implemented directly over JSON-RPC in `pet_care_mcp.minimcp`; no MCP
+# SDK at runtime. Starlette and uvicorn are an HTTP framework and server, not
+# MCP libraries; pydantic derives JSON Schemas from the tool signatures.
 dependencies = [
-    "mcp>=2.1.1",
-    "pydantic>=2.13",
+    "pydantic>=2.11",
     "uvicorn>=0.30",
     "starlette>=0.37",
 ]
@@ -21,6 +23,10 @@ dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.24",
     "ruff>=0.6",
+    # Test-only: the official SDK acts as a reference client, proving this
+    # hand-written server is wire-compatible with a conforming host. Nothing in
+    # the shipped package imports it.
+    "mcp>=2.1.1",
 ]
 
 [build-system]
