@@ -34,10 +34,6 @@ class ServerConfig:
         env: Extra environment variables merged over the inherited environment.
         cwd: Working directory for a stdio server.
         url: Endpoint of a Streamable HTTP server, usually ending in ``/mcp``.
-        mode: Protocol negotiation. ``auto`` probes ``server/discover`` first and,
-            if that attempt fails or times out, the host retries with the classic
-            ``initialize`` handshake; ``legacy`` goes straight to the handshake,
-            which is what the Wireshark walkthrough captures.
         timeout_seconds: Per-``tools/call`` timeout enforced by the host.
         connect_timeout_seconds: Ceiling on one connection attempt, so a server
             that never answers the negotiation cannot stall start-up.
@@ -52,7 +48,6 @@ class ServerConfig:
     env: dict[str, str] = field(default_factory=dict)
     cwd: str | None = None
     url: str | None = None
-    mode: Literal["auto", "legacy"] = "auto"
     timeout_seconds: float = 60.0
     connect_timeout_seconds: float = 30.0
 
@@ -125,7 +120,8 @@ class ServerStatus:
     error: str | None = None
     server_title: str | None = None
     protocol_version: str | None = None
-    negotiated_mode: str | None = None
+    #: Usage guidance the server sent in its ``initialize`` result, if any.
+    instructions: str | None = None
     discovered_tools: list[Any] = field(default_factory=list)
 
     @property

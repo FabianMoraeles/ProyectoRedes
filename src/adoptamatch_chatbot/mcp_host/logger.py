@@ -6,12 +6,12 @@ Two files are written per session, both under ``logs/``:
   ``request_id`` that correlates a ``request`` with its ``response`` or ``error``.
   This is the log the assignment asks for and the one the Wireshark walkthrough
   correlates against.
-* ``session-<id>.protocol.jsonl`` -- an optional **protocol-level** log of the
-  raw JSON-RPC messages a server *initiates*: notifications and server-to-client
-  requests, captured through the SDK's ``message_handler`` hook. Responses to the
-  host's own requests do not pass through that hook; they are recorded, decoded,
-  in the host-level log above. The file is often empty for servers that never
-  send a notification, which is normal.
+* ``session-<id>.wire.jsonl`` -- the **wire log**: every JSON-RPC frame that
+  crossed a transport, in *both* directions, with the kind the specification
+  defines (``request`` / ``notification`` / ``response`` / ``error``) and whether
+  it belongs to the lifecycle handshake. This is complete because the host
+  implements the protocol itself: it is the code writing and reading the bytes,
+  so nothing is hidden behind an SDK.
 * ``session-<id>.<server>.stderr.log`` -- whatever each stdio subprocess wrote to
   its standard error. Written by
   :class:`~adoptamatch_chatbot.mcp_host.manager.MCPManager`, not by this class,
@@ -32,6 +32,8 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Literal
+
+from adoptamatch_chatbot.mcp_wire.messages import LIFECYCLE_METHODS, classify, is_lifecycle
 
 Direction = Literal["request", "response", "error", "notification", "lifecycle"]
 
@@ -104,11 +106,15 @@ class InteractionLogger:
         self.log_dir = Path(log_dir)
         self.log_dir.mkdir(parents=True, exist_ok=True)
         self.path = self.log_dir / f"session-{self.session_id}.jsonl"
-        self.protocol_path = self.log_dir / f"session-{self.session_id}.protocol.jsonl"
+        self.protocol_path = self.log_dir / f"session-{self.session_id}.wire.jsonl"
         self._protocol_enabled = protocol_log
         self.event_count = 0
         self.tool_call_count = 0
         self.error_count = 0
+        #: JSON-RPC frames seen per kind, for the `/logs` summary and the report.
+        self.frame_counts: dict[str, int] = {}
+        #: (server, request id) -> method, so a reply can name the call it answers.
+        self._open_requests: dict[tuple[str, Any], str] = {}
 
     # ------------------------------------------------------------------ writing
 
@@ -160,19 +166,38 @@ class InteractionLogger:
             self.error_count += 1
         return record
 
-    def log_protocol_message(self, server: str, transport: str, message: Any) -> None:
-        """Append one raw JSON-RPC message received from a server."""
+    def log_frame(self, server: str, transport: str, direction: str, message: dict[str, Any]) -> None:
+        """Append one raw JSON-RPC frame, classified.
+
+        Args:
+            direction: ``out`` for host to server, ``in`` for server to host.
+            message: the decoded frame, exactly as it went on the wire.
+
+        The ``kind`` and ``lifecycle`` fields are what make the network report
+        writable: filter on them to separate the synchronisation messages from the
+        ordinary calls and their replies.
+        """
         if not self._protocol_enabled:
             return
-        payload: Any
-        if hasattr(message, "model_dump"):
-            payload = message.model_dump(mode="json", by_alias=True, exclude_none=True)
-        elif isinstance(message, BaseException):
-            payload = {"exception": type(message).__name__, "message": str(message)}
-        elif isinstance(message, (dict, list)):
-            payload = message
-        else:  # pragma: no cover - the SDK always sends a model or an exception
-            payload = str(message)
+        kind = classify(message)
+        self.frame_counts[kind] = self.frame_counts.get(kind, 0) + 1
+
+        # A reply carries no `method`, so on its own it cannot be told apart from
+        # any other reply. Remembering which method each outbound id asked for
+        # lets every response and error name the call it answers -- which is what
+        # makes the file readable next to a packet capture.
+        identifier = message.get("id")
+        method = message.get("method")
+        key = (server, identifier)
+        if kind == "request":
+            self._open_requests[key] = method or ""
+            lifecycle = is_lifecycle(message)
+        elif kind in ("response", "error"):
+            method = self._open_requests.pop(key, None)
+            lifecycle = method in LIFECYCLE_METHODS if method else False
+        else:
+            lifecycle = is_lifecycle(message)
+
         self._write(
             self.protocol_path,
             {
@@ -180,8 +205,12 @@ class InteractionLogger:
                 "session_id": self.session_id,
                 "server": server,
                 "transport": transport,
-                "origin": "server",
-                "message": _truncate(redact(payload)),
+                "direction": direction,
+                "kind": kind,
+                "lifecycle": lifecycle,
+                "method": method,
+                "id": identifier,
+                "message": _truncate(redact(message)),
             },
         )
 
@@ -196,6 +225,7 @@ class InteractionLogger:
             "events": self.event_count,
             "tool_calls": self.tool_call_count,
             "errors": self.error_count,
+            "frames": dict(self.frame_counts),
         }
 
     def tail(self, count: int = 10) -> list[dict[str, Any]]:
