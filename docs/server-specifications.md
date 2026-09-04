@@ -15,6 +15,7 @@ summarised with a pointer to their upstream documentation.
 | Launched as | `uv run adoptamatch-mcp`, cwd `../../adoptamatch-mcp` |
 | Endpoint | none — stdin/stdout of the subprocess |
 | Storage | SQLite, `data/adoptamatch.sqlite3` |
+| Protocol | JSON-RPC 2.0, hand-written in `minimcp.py`; **no MCP SDK** |
 | Full specification | [that repository's README](https://github.com/FabianMoraeles/adoptamatch-mcp#tool-specification) |
 
 Five tools:
@@ -45,6 +46,7 @@ costs points and raises a concern; the adoption is transactional and guarded by 
 | MCP endpoint | `POST`/`GET`/`DELETE` on `/mcp` |
 | Health endpoint | `GET /healthz` → `{"status":"ok","server":"pet-care","version":"1.0.0"}` — a plain HTTP route, deliberately **not** an MCP tool |
 | Configuration | `HOST` (default `127.0.0.1`), `PORT` (default `8080`) |
+| Protocol | JSON-RPC 2.0, hand-written in `minimcp.py` (a verbatim copy of the file in the public repository); **no MCP SDK** |
 | Container | `remote_server/Dockerfile`, non-root, reads `PORT` |
 | Deployment guide | [`deployment.md`](deployment.md) |
 
@@ -96,7 +98,7 @@ Example call and response:
 | `species` | enum | `dog` \| `cat` |
 | `weight_kg` | number | `0 < weight_kg <= 120` |
 
-Returns `{species, weight_kg, estimated_ml_per_day, range_ml_per_day, basis, disclaimer}`.
+Returns `{species, weight_kg, estimated_ml_per_day, range_low_ml_per_day, range_high_ml_per_day, basis, disclaimer}`.
 The range is 50–70 ml/kg/day for a dog and 45–60 for a cat; the point estimate is
 the midpoint. Out-of-range weights return `isError: true`.
 
@@ -114,7 +116,6 @@ or medication to a veterinarian instead of calling these tools.
 | Upstream | <https://github.com/modelcontextprotocol/servers> |
 | Transport | stdio, launched with `npx -y … demo_workspace` |
 | Scope | **`./demo_workspace` only** |
-| `mode` | `legacy` — it does not answer the `server/discover` probe |
 
 Fourteen tools discovered, including `list_allowed_directories`,
 `create_directory`, `write_file`, `read_text_file`, `list_directory`,
@@ -132,7 +133,6 @@ rejected. Never launch it against a home directory or a drive root.
 | Upstream | <https://github.com/modelcontextprotocol/servers> |
 | Transport | stdio, launched with `uvx mcp-server-git --repository demo_workspace/demo-repo` |
 | Scope | **`./demo_workspace/demo-repo` only** |
-| `mode` | `legacy` — an `auto` attempt makes it log a long validation warning for the unknown `server/discover` method |
 
 Twelve tools discovered: `git_status`, `git_add`, `git_commit`, `git_log`,
 `git_show`, `git_diff`, `git_diff_staged`, `git_diff_unstaged`, `git_branch`,

@@ -16,7 +16,8 @@ Suggested length: 12–18 pages including figures.
   isolation, logging and transport choice actually live.
 - The business case: AdoptaMatch, an assistant for an animal shelter.
 - Objectives, mapped one-to-one to the rubric. Say up front which are done and
-  which are not.
+  which are not; [`rubric-map.md`](rubric-map.md) already has that mapping with
+  the evidence for each item, so this section can be a summary of it.
 
 ## 2. Architecture (2–3 pages)
 
@@ -26,9 +27,10 @@ Suggested length: 12–18 pages including figures.
 - Two transports side by side: stdio for local servers, Streamable HTTP for the
   remote one. Why not SSE.
 - Design decisions worth defending, one short paragraph each:
+  - MCP is implemented directly over JSON-RPC, with no SDK (see 3.3);
   - the host owns the agentic loop rather than the SDK's tool runner, because
     routing and logging live there;
-  - one `AsyncExitStack` per server, so one failure is isolated;
+  - one session per server, closed independently, so one failure is isolated;
   - tool names qualified only on a real collision;
   - errors turned into `tool_result` payloads instead of exceptions;
   - configuration as data, secrets in the environment.
@@ -58,6 +60,31 @@ Suggested length: 12–18 pages including figures.
 
 **Figure 3** — a `recommend_animals` result with its breakdown.
 
+
+## 3.3 The protocol, implemented by hand (extra A)
+
+This is worth its own subsection, because it is where most of the protocol
+learning happened.
+
+- The four JSON-RPC message kinds and how to tell them apart (`method`? `id`?).
+- The MCP lifecycle: `initialize` → `notifications/initialized` → `tools/list` →
+  `tools/call`, and why the first two are synchronisation while the rest are
+  ordinary calls.
+- Version negotiation: the client proposes a revision, the server answers with
+  the one it will use.
+- The two transports, and what each one costs: newline-delimited JSON on a pipe
+  versus one `POST` per frame with a session header.
+- Error handling at two levels, which is the subtlety worth explaining: a
+  *protocol* failure is a JSON-RPC `error` object with a reserved code, while a
+  *tool* failure is a normal result carrying `isError: true` so the model can read
+  it and correct itself.
+- How the claim "no MCP SDK" is enforced and, more importantly, how
+  interoperability was **proved in both directions** against the official SDK and
+  against two third-party reference servers. Say why that matters: an
+  implementation that only talks to itself proves nothing.
+
+**Figure** — one captured `tools/call` request and its response, annotated.
+
 ## 4. Integrations (2 pages)
 
 ### 4.1 Official reference servers
@@ -67,8 +94,9 @@ Suggested length: 12–18 pages including figures.
 - The reproducible scenario, step by step, with the log lines that prove which
   server executed each step.
 - Two concrete findings worth reporting:
-  - both are handshake-era and do not answer the modern `server/discover` probe,
-    which is why the host bounds each attempt and retries in `legacy` mode;
+  - neither answers the SDK's modern `server/discover` probe, which is what made
+    the SDK-based client hang; a hand-written client that sends `initialize`
+    first connects to both in under a second;
   - the Git server's `repo_path` must be the path it was launched with, not `.`.
 
 ### 4.2 Classmates' servers
@@ -129,7 +157,9 @@ code and are yours to reuse if they were yours:
 | Difficulty | How it showed up | Solution |
 | --- | --- | --- |
 | The MCP Python SDK is at 2.x, where `FastMCP` became `MCPServer` and the client gained a `Client` facade | Any 1.x example fails at import | Read the installed package instead of relying on remembered APIs |
-| Two reference servers hang on the `server/discover` probe | The Filesystem server took 72 s and then failed to connect | Bound each attempt with `connect_timeout_seconds` and retry once in `legacy` mode; set `mode = "legacy"` explicitly for known handshake-era servers |
+| Replacing the SDK with a hand-written implementation risked breaking a working project | A protocol bug would be silent: the wrong bytes still look like JSON | Keep the official SDK as a **test-only** conformance oracle and assert interoperability in both directions before trusting anything |
+| `pydantic.create_model` ignores `model_config` assigned after the fact | Unknown tool arguments were silently accepted instead of rejected | Pass `__config__=ConfigDict(extra="forbid")` to `create_model`; a test now covers it |
+| Two reference servers hang on the SDK's `server/discover` probe | The Filesystem server took 72 s and then failed to connect | First worked around it with a bounded connect timeout and a retry; then removed the failure mode entirely by writing the client, which sends `initialize` first as the specification says |
 | The Git server logged a 31-error validation warning on every start | Unreadable console | Same root cause; plus each stdio server's stderr now goes to its own log file |
 | Closing a Streamable HTTP client raised `CancelledError` | Teardown aborted and the closing log lines were lost | The transport's own task group cancels the final `DELETE`; swallow it on the shutdown path only, with a comment saying why |
 | The Git server rejected `repo_path: "."` | "outside the allowed repository" | Pass the path the server was launched with |

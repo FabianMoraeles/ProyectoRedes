@@ -21,12 +21,16 @@ negotiated protocol version of each, and the tool count.
 ```
 /servers
 /tools
+/verbose
 ```
 
 Point out: two transports side by side (`stdio` and `streamable-http`), the
-negotiated protocol version per server, and — in `/tools` — that every tool name
+negotiated protocol revision per server, and — in `/tools` — that every tool name
 is unique here, so none needed qualifying. Mention that a collision would be
 resolved as `<server>__<tool>`.
+
+`/verbose` switches the interface from compact to full payloads; leave it on if
+the audience wants to see the JSON, off if they want to follow the conversation.
 
 ---
 

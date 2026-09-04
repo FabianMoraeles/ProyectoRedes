@@ -13,13 +13,6 @@
 #   env              stdio only: extra environment variables for the subprocess.
 #   cwd              stdio only: working directory, resolved RELATIVE TO THIS FILE.
 #   url              streamable-http only: the MCP endpoint, usually ending in /mcp.
-#   mode             "auto" (default) probes server/discover first and, if that
-#                    attempt fails or times out, the host retries with the classic
-#                    `initialize` handshake. "legacy" goes straight to the
-#                    handshake. Use "legacy" for servers you already know are
-#                    handshake-era (it saves one failed attempt at start-up) and
-#                    for the Wireshark capture, so `initialize` is on the wire in
-#                    the shape the report describes.
 #   timeout_seconds  per-tools/call timeout enforced by the host.
 #   connect_timeout_seconds
 #                    ceiling on one connection attempt, so a server that never
@@ -54,10 +47,6 @@ description = "Official reference server, scoped to ./demo_workspace"
 command = "npx"
 args = ["-y", "@modelcontextprotocol/server-filesystem", "demo_workspace"]
 cwd = ".."
-# This server is handshake-era: it neither answers nor rejects the server/discover
-# probe, so an "auto" attempt would sit there until it times out. Going straight to
-# "legacy" connects in under a second.
-mode = "legacy"
 timeout_seconds = 60
 connect_timeout_seconds = 45
 
@@ -71,9 +60,6 @@ description = "Official reference server, scoped to ./demo_workspace/demo-repo"
 command = "uvx"
 args = ["mcp-server-git", "--repository", "demo_workspace/demo-repo"]
 cwd = ".."
-# Handshake-era as well: an "auto" attempt makes it log a 31-error validation
-# warning for the unknown server/discover method before falling back.
-mode = "legacy"
 timeout_seconds = 90
 # uvx may need to download the package on the very first run.
 connect_timeout_seconds = 120
@@ -82,15 +68,13 @@ connect_timeout_seconds = 120
 
 # Start it locally with:
 #   cd remote_server && uv run pet-care-mcp
-# or point the url at your deployed instance. `mode = "legacy"` makes the
-# `initialize` handshake explicit, which is what docs/wireshark-analysis.md captures.
+# or point the url at your deployed instance.
 [[servers]]
 name = "pet_care_remote"
 transport = "streamable-http"
 enabled = false
 description = "Own remote server over Streamable HTTP (daily care checklist, water estimate)"
 url = "http://127.0.0.1:8080/mcp"
-mode = "legacy"
 timeout_seconds = 30
 
 # ------------------------------------------------------- classmates' MCP servers

@@ -5,6 +5,12 @@ connects to several [Model Context Protocol](https://modelcontextprotocol.io/)
 servers at once over two different transports, routes the model's tool calls to
 the right server, and writes every request and response to a persistent audit log.
 
+**The MCP protocol is implemented here, directly over JSON-RPC 2.0 — no MCP SDK.**
+Framing, both transports and the session lifecycle live in
+[`mcp_wire/`](src/adoptamatch_chatbot/mcp_wire); the official SDK is a *test-only*
+dependency, used as a conformance oracle to prove wire compatibility in both
+directions.
+
 The business case is AdoptaMatch: an assistant for an animal shelter that searches
 animals, explains how well each one fits a household, compares candidates and
 registers adoptions. The shelter data lives in a separate public MCP server,
@@ -16,6 +22,7 @@ registers adoptions. The shelter data lives in a separate public MCP server,
 
 - [What it does](#what-it-does)
 - [Architecture](#architecture)
+- [The protocol, by hand](#the-protocol-by-hand)
 - [Supported MCP transports](#supported-mcp-transports)
 - [Requirements](#requirements)
 - [Installation](#installation)
@@ -27,6 +34,7 @@ registers adoptions. The shelter data lives in a separate public MCP server,
 - [Logs](#logs)
 - [Demo scenarios](#demo-scenarios)
 - [Tests](#tests)
+- [The interface](#the-interface)
 - [Remote server and deployment](#remote-server-and-deployment)
 - [Troubleshooting](#troubleshooting)
 - [Security notes](#security-notes)
@@ -88,6 +96,9 @@ Four boundaries, each of which can be tested on its own:
 | `llm/base.py` | A provider-neutral interface: one `complete()` call, one `tool_result_message()` builder |
 | `llm/anthropic_provider.py` | The Anthropic implementation (single turn; the host owns the loop) |
 | `llm/scripted.py` | A deterministic stand-in used by every test and by `--offline` |
+| `mcp_wire/messages.py` | JSON-RPC framing, request ids, the four message kinds |
+| `mcp_wire/transports.py` | `StdioTransport` (pipes) and `StreamableHttpTransport` (TCP) |
+| `mcp_wire/session.py` | The MCP lifecycle: handshake, `tools/list`, `tools/call` |
 | `mcp_host/models.py` | `ServerConfig`, `ToolRef`, `ServerStatus`, `ToolCallOutcome` |
 | `mcp_host/manager.py` | Connections, discovery, the tool→server map, calls, timeouts, shutdown |
 | `mcp_host/logger.py` | JSONL logging with redaction, truncation and request/response correlation |
@@ -96,6 +107,59 @@ Four boundaries, each of which can be tested on its own:
 
 > The MCP package is called `mcp_host`, not `mcp`, so that `from mcp.client import Client`
 > inside this project unambiguously means the official SDK.
+
+## The protocol, by hand
+
+MCP is JSON-RPC 2.0 with a defined set of methods. This host implements it
+directly rather than calling an SDK, which is the assignment's first optional
+extra — and, as it turned out, the simpler design.
+
+### The lifecycle, in the order it appears on the wire
+
+| # | Message | Kind | Purpose |
+| --- | --- | --- | --- |
+| 1 | `initialize` | request | Propose a protocol revision, declare capabilities, identify the client |
+| 2 | *(reply)* | response | The revision the server will use, its capabilities, its identity, optional `instructions` |
+| 3 | `notifications/initialized` | notification | The client confirms. **No reply** — a notification has no `id` |
+| 4 | `tools/list` | request | Discover the catalogue and its JSON Schemas |
+| 5 | `tools/call` | request | Invoke one tool |
+
+Messages 1–3 are *synchronisation*; 4 and 5 are ordinary calls. The wire log tags
+every frame with exactly that distinction, which is what the network analysis
+needs.
+
+### What is where
+
+| Module | Responsibility |
+| --- | --- |
+| `mcp_wire/messages.py` | Build and classify frames; allocate monotonic request ids; turn a JSON-RPC `error` into a Python exception |
+| `mcp_wire/transports.py` | `StdioTransport`: spawn a subprocess, newline-delimited JSON, one reader task dispatching replies by id. `StreamableHttpTransport`: one `POST` per frame, `Mcp-Session-Id` handling, JSON *or* SSE reply bodies, `DELETE` on close |
+| `mcp_wire/session.py` | The lifecycle above, plus `tools/list` pagination and result normalisation |
+
+The servers use the same approach: `minimcp.py`, one self-contained module
+vendored identically into `adoptamatch-mcp` and `pet_care_mcp`.
+
+### How the claim is verified
+
+Three tests enforce "no MCP SDK at runtime", and they are the first thing to run
+if you doubt it:
+
+```bash
+uv run pytest -q tests/test_mcp_wire.py -k NoSdk
+```
+
+- no module under `src/` imports `mcp`;
+- importing the package in a fresh interpreter never loads an `mcp` module;
+- the declared runtime dependencies contain no MCP SDK.
+
+Interoperability is then proved in **both directions**, because a hand-written
+implementation that only talks to itself proves nothing:
+
+| Direction | What it shows |
+| --- | --- |
+| Official SDK client → hand-written servers | `adoptamatch` over stdio and `pet-care` over Streamable HTTP both satisfy a reference client, in both of its negotiation modes |
+| Hand-written client → official SDK servers | The fixture servers in `tests/servers/` are built with the SDK on purpose, so every test in `test_manager.py` is also an interop test |
+| Hand-written client → real third-party servers | The reference Filesystem (`npx`) and Git (`uvx`) servers connect and run tools, verified by `--check` and by `scripts/demo_filesystem_git.py` |
 
 ## Supported MCP transports
 
@@ -107,18 +171,16 @@ Four boundaries, each of which can be tested on its own:
 SSE is deliberately not used: it is the deprecated remote transport and new
 projects should not start with it.
 
-**Protocol negotiation.** Each server entry has a `mode`:
-
-- `auto` (default) probes the modern `server/discover` method first and, if that
-  attempt fails or times out, the host retries once with the classic `initialize`
-  handshake. Both attempts are logged.
-- `legacy` goes straight to the handshake. Use it for servers you already know are
-  handshake-era — it saves a failed attempt at start-up — and for the Wireshark
-  capture, so `initialize` is on the wire in the shape the report describes.
+**Protocol revision.** The client proposes `2025-06-18` in `initialize` and
+accepts whatever the server answers with. `/servers` shows the negotiated revision
+per server. There is no negotiation guesswork and no probing: the handshake is the
+first thing on the wire, exactly as the specification prescribes.
 
 ## Requirements
 
 - **Python 3.10+** (developed and tested on 3.12).
+- **No MCP SDK.** Runtime dependencies are `anthropic`, `httpx2`, `pydantic`,
+  `python-dotenv` and `rich`; a test asserts that none of them is an MCP SDK.
 - **[uv](https://docs.astral.sh/uv/)** for dependencies and the lockfile.
 - **Node.js 18+** — only for the official Filesystem server, launched via `npx`.
 - **Git** — only for the official Git server, launched via `uvx`.
@@ -283,7 +345,7 @@ Every session writes to `LOG_DIR` (default `logs/`, git-ignored):
 | File | Contents |
 | --- | --- |
 | `session-<uuid>.jsonl` | The host-level log: one JSON object per event. |
-| `session-<uuid>.protocol.jsonl` | Raw JSON-RPC messages the servers *initiate* (notifications and server-to-client requests). Often empty — most servers never send one. |
+| `session-<uuid>.wire.jsonl` | **Every JSON-RPC frame, both directions**, tagged with its kind (`request` / `notification` / `response` / `error`) and whether it is part of the lifecycle handshake. Complete, because the host writes those bytes itself. |
 | `session-<uuid>.<server>.stderr.log` | Whatever each stdio subprocess wrote to stderr. Reference servers are chatty; this keeps the console clean and the noise recoverable. |
 
 A request and its response share a `request_id`. A real pair, copied from a run of
@@ -345,11 +407,11 @@ a fixed plan, and prints the resulting log.
 ## Tests
 
 ```bash
-uv run pytest -q          # 59 tests
+uv run pytest -q          # 88 tests
 uv run ruff check .
 uv run ruff format --check .
 
-cd remote_server && uv run pytest -q   # 11 tests, incl. a real HTTP round-trip
+cd remote_server && uv run pytest -q   # 18 tests, incl. a real HTTP round-trip
 ```
 
 **No test ever calls a language-model API** — every model turn comes from
@@ -361,6 +423,10 @@ Coverage, by area:
 
 | Area | Examples |
 | --- | --- |
+| The protocol itself | Frame construction, the four message kinds, monotonic ids, every reserved JSON-RPC error code, lifecycle classification |
+| No MCP SDK at runtime | No module imports one, importing the package never loads one, the declared runtime dependencies contain none |
+| Interoperability | Hand-written client against official SDK servers over both transports; official SDK client against the hand-written servers |
+| Transports | Handshake, frame hook in both directions, timeout, unstartable server, server that exits immediately, non-JSON noise on stdout, double close |
 | Configuration | missing file, invalid TOML, unknown key, duplicate name, transport/field mismatch, missing `cwd`, bad timeout, the shipped example file itself |
 | Discovery | tools merged from several servers, handshake details recorded |
 | Collisions | colliding names qualified, unique names left bare, each qualified call reaching the right server |
@@ -371,6 +437,34 @@ Coverage, by area:
 | Context | a follow-up question that still sees the first turn; tool results still in the payload one turn later; trimming that never orphans a `tool_result` |
 | Logging | required fields, request/response correlation, counters, redaction, truncation |
 | Shutdown | `aclose()` releases everything and is idempotent |
+
+## The interface
+
+The terminal UI is a designed artefact, not an accident — the assignment's second
+optional extra. The full rationale is in [`docs/ui-design.md`](docs/ui-design.md);
+the rules it follows:
+
+- **Hierarchy.** The answer is what you read, so it gets the plain foreground and
+  the most space. Tool activity is indented and dimmed so it recedes. Errors are
+  the only thing allowed to be loud.
+- **Semantic colour.** Six roles, six meanings: cyan for identity and commands,
+  magenta for machine activity, green for success, red for failure, yellow for
+  warnings, dim for metadata. Magenta sits far from the green/red pair, which is
+  the one colour-blind readers most often confuse.
+- **Colour is never the only signal.** Every state also carries a glyph and a
+  word, so `✓ ok` and `✗ failed` stay distinguishable with no colour at all.
+- **Feedback.** Spinners name what they are waiting for; every tool call is
+  announced before it runs; every result reports its duration and its correlation
+  id.
+- **Progressive disclosure.** Compact by default, `/verbose` for full payloads.
+- **Accessibility.** `--no-color`, the `NO_COLOR` environment variable, `--ascii`
+  for terminals that cannot render the glyphs, and a width-adaptive layout.
+
+```bash
+uv run adoptamatch-chatbot --offline --verbose   # full arguments and results
+uv run adoptamatch-chatbot --offline --no-color  # semantics survive without colour
+uv run adoptamatch-chatbot --offline --ascii     # ASCII glyph set
+```
 
 ## Remote server and deployment
 
@@ -400,7 +494,7 @@ the source.
 | --- | --- |
 | `ANTHROPIC_API_KEY is not set` | Copy `.env.example` to `.env` and fill it in, or run `--offline`. |
 | `MCP server configuration not found` | Copy `config/servers.example.toml` to `config/servers.toml`. |
-| A server shows `failed` with `timed out … in mode 'auto'` | It is handshake-era and does not answer `server/discover`. Set `mode = "legacy"` on that entry; the host retries automatically but the wasted attempt slows start-up. |
+| A server shows `failed` with `timed out … during the handshake` | It never answered `initialize`. Read `logs/session-<id>.<server>.stderr.log` — the real error is almost always there. |
 | `filesystem` fails to start | Node.js is missing, or the scoped directory does not exist. Run `mkdir demo_workspace`. |
 | `git` fails to start | `uvx` is missing, or `demo_workspace/demo-repo` is not a repository. Run `git init demo_workspace/demo-repo`. |
 | `git_*` returns "outside the allowed repository" | Pass `repo_path` as the path the server was launched with (`demo_workspace/demo-repo`), not `.`. |
@@ -446,6 +540,10 @@ adoptamatch-chatbot/
 │   │   ├── base.py             provider-neutral interface
 │   │   ├── anthropic_provider.py
 │   │   └── scripted.py         test double and --offline router
+│   ├── mcp_wire/            hand-written MCP client, no SDK
+│   │   ├── messages.py      JSON-RPC framing and classification
+│   │   ├── transports.py    stdio (pipes) and Streamable HTTP (TCP)
+│   │   └── session.py       the MCP lifecycle
 │   └── mcp_host/
 │       ├── models.py           ServerConfig, ToolRef, ServerStatus, ToolCallOutcome
 │       ├── manager.py          connections, discovery, routing, timeouts, shutdown
@@ -455,7 +553,9 @@ adoptamatch-chatbot/
 │   ├── servers.example.toml    documented inventory to copy
 │   └── demo-prompts.md         the prompts to type during the demo
 ├── docs/
+│   ├── rubric-map.md           every requirement, where it is, how to verify it
 │   ├── architecture.md
+│   ├── ui-design.md             the interface rationale
 │   ├── server-specifications.md
 │   ├── classmate-servers.md
 │   ├── deployment.md

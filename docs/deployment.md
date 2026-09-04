@@ -1,8 +1,10 @@
 # Deploying `pet-care-mcp`
 
-The remote server is what puts MCP on a TCP socket, so it has to be reachable for
-the network-analysis part of the project. It can be demonstrated **entirely
-locally**; deploying it to a cloud provider is optional and costs money.
+Requirement 7 of the assignment is explicit: the server must **run on a cloud
+service** (Google Cloud, Cloudflare, or similar). Option B below is therefore the
+one the requirement asks for; option A exists because it is the right way to
+develop, and the right way to rehearse the packet capture before spending
+anything.
 
 > **Nothing in this guide is executed automatically.** No project is created, no
 > billing is enabled, no image is pushed and no service is deployed without you
@@ -10,7 +12,7 @@ locally**; deploying it to a cloud provider is optional and costs money.
 
 ---
 
-## Option A — local only (free, no account, works for the capture)
+## Option A — local only (free, no account; development and rehearsal)
 
 ```bash
 cd remote_server
@@ -26,7 +28,6 @@ name = "pet_care_remote"
 transport = "streamable-http"
 enabled = true
 url = "http://127.0.0.1:8080/mcp"
-mode = "legacy"
 ```
 
 What this **does** demonstrate: Streamable HTTP, a real TCP connection, HTTP
@@ -34,8 +35,9 @@ request/response framing, and JSON-RPC readable in Wireshark on the loopback
 interface.
 
 What it **does not** demonstrate: DNS resolution, routing beyond the host, TLS, or
-a public endpoint. If the assignment requires the server to run remotely, use
-option B.
+a public endpoint — and it does **not** satisfy requirement 7, which asks for a
+cloud deployment. Capture both if you can: the plaintext local capture explains
+what the encrypted remote one contains.
 
 To capture traffic across a real interface without a cloud account, an intermediate
 step is to bind to `0.0.0.0` and connect from a second machine on the same LAN:
@@ -56,14 +58,15 @@ pair for the link-layer section of the report.
 
 | Item | Reality |
 | --- | --- |
+| Alternative without a card | Render's free web-service tier and similar platforms accept the same container with no billing account. Option C covers that; the requirement only asks for *a* cloud service. |
 | Cost at demo scale | Effectively zero. Cloud Run's free tier covers far more than a few hundred requests per month, and a scale-to-zero service costs nothing while idle. |
 | What you must enable | A billing account on the Google Cloud project. Free tier still requires one. |
 | Real risk | A public, unauthenticated endpoint. Anyone with the URL can call your tools. These two tools are harmless and stateless, but the habit is not. |
 | Second risk | Forgetting to delete it. Set a calendar reminder, or run the teardown command below right after the demo. |
 | Artifact Registry | Stored images cost a few cents per GB-month. Delete the repository when done. |
 
-Decide explicitly whether the assignment requires a public deployment. If it does
-not, option A is the better engineering choice.
+The assignment does require it, so this is the path to take. Deploy shortly before
+the demo, and delete it afterwards with the teardown commands below.
 
 ### Prerequisites
 
@@ -128,7 +131,6 @@ name = "pet_care_remote"
 transport = "streamable-http"
 enabled = true
 url = "https://pet-care-mcp-XXXXXXXX-uc.a.run.app/mcp"
-mode = "legacy"
 timeout_seconds = 60
 connect_timeout_seconds = 60
 ```
@@ -179,7 +181,7 @@ curl http://127.0.0.1:8080/healthz
   encrypted remote capture contains, and the host's JSONL log ties the two
   together.
 - To decrypt your own HTTPS session legitimately, see
-  [`wireshark-analysis.md`](wireshark-analysis.md) § 7 (`SSLKEYLOGFILE`).
+  [`wireshark-analysis.md`](wireshark-analysis.md) § 8 (`SSLKEYLOGFILE`).
 
 ## Security checklist before deploying
 

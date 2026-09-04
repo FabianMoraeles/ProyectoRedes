@@ -29,7 +29,9 @@ point at who plays each. Highlight the two transports.
 | Own remote server | `pet-care`, 2 tools, Streamable HTTP |
 | Official servers | Filesystem, Git — both scoped |
 | Classmates' servers | [fill in] |
-| Tests | 69 + 59 + 11, no API credits consumed |
+| Tests | 79 + 88 + 18, no API credits consumed |
+| Extra A | MCP over direct JSON-RPC, no SDK |
+| Extra B | An interface designed against HCI principles |
 
 ## Slides 5–9 — LIVE DEMO (5–6 min)
 
@@ -51,6 +53,20 @@ The weights table and one real breakdown. The point: deterministic, reproducible
 defensible to an adopter — and hard rules are applied *before* scoring, so an
 unsafe match is never merely low-scoring.
 
+
+## Slide 10b — The protocol by hand, and the interface (1 min)
+
+Two slides' worth of material compressed into one, because both are optional
+extras and both are visible in the demo.
+
+- **No MCP SDK.** One diagram: the four message kinds, and the five-step
+  lifecycle. Then the honest proof: the official SDK client drives your servers,
+  and your client drives the official servers plus the reference Filesystem and
+  Git servers. Mention the test that fails if anyone ever imports the SDK.
+- **The interface.** Show the same scenario twice, once normally and once with
+  `--no-color`. Everything still readable: that is the accessibility rule, not a
+  slogan. Mention `/verbose` as progressive disclosure.
+
 ## Slide 11 — Network analysis (1.5 min)
 
 - The headline: stdio produces **no** network traffic; that is what the transport
@@ -65,8 +81,8 @@ unsafe match is never merely low-scoring.
 
 Pick three, with the fix in one line each. Suggested:
 
-- Two reference servers hang on the modern negotiation probe → bounded connect
-  timeout plus an automatic `legacy` retry.
+- Two reference servers hang on the SDK's modern negotiation probe → writing the
+  client by hand removed the failure mode instead of working around it.
 - Closing the HTTP transport cancelled the shutdown → work out whose cancel scope
   it is, then swallow it on the shutdown path only.
 - Scoped servers express their scope differently → read the error, pass the path
@@ -103,4 +119,5 @@ Repository links, and an offer to show the code or the log.
 - [ ] `uv run python scripts/demo_filesystem_git.py` verified as the contingency.
 - [ ] Answers ready for: "why not the SDK's tool runner?", "what happens if a
       server crashes?", "why does stdio show nothing in Wireshark?", "how do you
-      prevent a tool-name collision?".
+      prevent a tool-name collision?", "how do you know your JSON-RPC is correct
+      if you wrote it yourself?".

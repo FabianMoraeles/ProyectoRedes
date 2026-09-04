@@ -13,7 +13,7 @@ MCP separates three roles. Being precise about them explains most of the design.
 | Role | Who plays it here | Responsibility |
 | --- | --- | --- |
 | **Host** | `adoptamatch-chatbot` | Owns the conversation, the model, the security boundary and the log. Decides *which* servers exist and *what* the model is allowed to see. |
-| **Client** | One `mcp.client.Client` per server, inside `MCPManager` | Speaks JSON-RPC to exactly one server. Owns the handshake, the session id and the transport. |
+| **Client** | One `mcp_wire.ClientSession` per server, inside `MCPManager` | Speaks JSON-RPC to exactly one server. Owns the handshake, the session id and the transport. |
 | **Server** | `adoptamatch`, `filesystem`, `git`, `pet-care`, classmates' | Exposes tools. Knows nothing about the model or the other servers. |
 
 One host, several clients, several servers. A server never learns that other
@@ -48,7 +48,7 @@ through the name the host prefixes onto each tool description.
 │  llm/scripted.py             tests and --offline                                      │
 │                                                                                       │
 │  mcp_host/manager.py  MCPManager                                                      │
-│    per server: AsyncExitStack → Client → handshake → tools/list                       │
+│    per server: mcp_wire.ClientSession → handshake → tools/list                        │
 │    tool map:  exposed_name → ToolRef(server, original_name, schema)                   │
 │    call_tool: log request → client.call_tool(timeout) → log response/error            │
 │                                                                                       │
@@ -68,12 +68,32 @@ is not used here, deliberately: the assignment is about being an MCP host, and t
 loop is where routing, logging and timeout policy live. Writing it explicitly makes
 those visible and testable. The provider class is reduced to a single-turn adapter.
 
-### One `AsyncExitStack` per server
+### MCP is implemented directly over JSON-RPC, with no MCP SDK
 
-Every server is entered into its own exit stack, and the stacks are unwound
-independently. A server that hangs or crashes on shutdown cannot prevent the others
-from closing. The same isolation applies at connect time: a failure is recorded on
-that server's status and the loop moves on.
+This is the assignment's first extra, and it also turned out to be the simpler
+design. `mcp_wire` builds and parses every frame itself, against the JSON-RPC 2.0
+and MCP specifications. Three consequences worth stating:
+
+* **The wire log is complete.** Because the host writes the bytes, it can record
+  every frame in both directions, classified. An SDK's message hook only exposes
+  what a server *initiates*.
+* **The lifecycle is explicit.** `initialize`, `notifications/initialized`,
+  `tools/list`, `tools/call` is a few lines of readable code, which is exactly what
+  the network report has to describe.
+* **Interoperability is proved, not assumed.** The official SDK is a test-only
+  dependency used as a conformance oracle, in both directions: its client drives
+  the hand-written servers, and the hand-written client drives its servers as well
+  as the reference Filesystem (`npx`) and Git (`uvx`) servers.
+
+The servers use the same approach: `minimcp.py`, a single self-contained module
+vendored identically into `adoptamatch-mcp` and `pet_care_mcp`.
+
+### One session per server, closed independently
+
+Each server gets its own `ClientSession` and its own subprocess or connection
+pool, and they are torn down one at a time. A server that hangs or crashes on
+shutdown cannot prevent the others from closing. The same isolation applies at
+connect time: a failure is recorded on that server's status and the loop moves on.
 
 ### Qualify tool names only on a collision
 
@@ -85,14 +105,20 @@ exposed name and the original.
 The separator is a double underscore rather than a dot because the Claude API's
 tool-name pattern accepts `[a-zA-Z0-9_-]` only.
 
-### Connect timeout plus a legacy retry
+### One handshake, bounded by a connect timeout
 
-MCP 2.x negotiates by probing a modern `server/discover` method and falling back to
-the classic `initialize` handshake. Two of the official reference servers do not
-answer that probe at all, so an `auto` attempt would sit until the read timeout.
-Each attempt is therefore bounded by `connect_timeout_seconds`, and on failure the
-host retries once in `legacy` mode. Both attempts are in the log, and `/servers`
-shows which mode actually won.
+There is no negotiation guesswork: the client sends `initialize` first, exactly as
+the specification prescribes, so a server either completes the handshake or fails
+for a reason worth reporting. Each attempt is bounded by `connect_timeout_seconds`,
+so a server that never answers cannot stall start-up.
+
+This is worth a paragraph in the report, because it replaced a real problem. An
+earlier version of this host used the official SDK's client, whose default
+negotiation probes a newer `server/discover` method before falling back to
+`initialize`. Two of the official reference servers neither answer nor reject that
+probe, so connecting to the Filesystem server took 72 seconds and then failed.
+Writing the client by hand removed the failure mode entirely rather than working
+around it.
 
 ### The history is the context
 
@@ -109,13 +135,16 @@ A tool that fails, times out, or does not exist produces a `tool_result` with
 `is_error: true` containing the reason. The model reads it and can correct itself.
 An exception would end the turn and tell the user nothing useful.
 
-### Two logs, one session
+### Three logs, one session
 
-The host-level JSONL log is decoded and correlated — it is what the report uses.
-The protocol-level log captures only what a server *initiates* (notifications and
-server-to-client requests), because responses to the host's own requests do not
-pass through the SDK's message hook. Each stdio server's stderr goes to its own
-file, which keeps the console readable and the failure recoverable.
+* The **host-level** JSONL log: one event per request and one per reply,
+  correlated by `request_id`, with durations. This is the audit trail.
+* The **wire log**: every JSON-RPC frame in both directions, tagged with its kind
+  (`request` / `notification` / `response` / `error`) and whether it belongs to the
+  lifecycle handshake. This is what the network analysis correlates against a
+  packet capture. It is complete because the host writes those bytes itself.
+* One **stderr file per stdio server**, which keeps the console readable and a
+  failure recoverable.
 
 ### Configuration is data
 
@@ -149,7 +178,7 @@ model                host                          client            server
 | Failure | Behaviour |
 | --- | --- |
 | A server will not start | Status `failed` with the reason; the session continues without its tools. |
-| A server hangs during negotiation | `connect_timeout_seconds` fires; a legacy retry follows. |
+| A server hangs during the handshake | `connect_timeout_seconds` fires; the server is marked failed with the reason. |
 | A tool exceeds `timeout_seconds` | The call returns `is_error`; the session continues. |
 | A tool raises | The server returns `isError: true`; the host relays the message. |
 | The model names a tool that does not exist | The host answers with the list of tools that do. |
@@ -160,8 +189,6 @@ model                host                          client            server
 ## What is deliberately *not* here
 
 - No SSE transport — it is the deprecated remote transport.
-- No hand-rolled JSON-RPC on the required path — the official SDK is used, as the
-  assignment requires.
 - No streaming of model output — it would complicate the loop without demonstrating
   anything about MCP.
 - No persistence of conversations across runs — the log is the record.
