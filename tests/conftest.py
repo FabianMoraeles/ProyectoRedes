@@ -28,7 +28,6 @@ def fixture_server(name: str, script: str, **overrides: object) -> ServerConfig:
         "transport": "stdio",
         "command": sys.executable,
         "args": [str(SERVERS_DIR / script)],
-        "mode": "legacy",  # the fixture servers are ours; skip the discover probe
         "timeout_seconds": 15.0,
         "connect_timeout_seconds": 30.0,
     }

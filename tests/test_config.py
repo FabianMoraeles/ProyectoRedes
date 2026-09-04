@@ -41,7 +41,7 @@ def test_valid_file_loads_both_transports(tmp_path: Path) -> None:
     assert [c.name for c in configs] == ["adoptamatch", "remote"]
     assert configs[0].transport == "stdio" and configs[0].enabled is True
     assert configs[1].transport == "streamable-http" and configs[1].enabled is False
-    assert configs[0].mode == "auto"  # documented default
+    assert configs[0].timeout_seconds == 60.0  # documented default
 
 
 def test_missing_file_names_the_fix(tmp_path: Path) -> None:

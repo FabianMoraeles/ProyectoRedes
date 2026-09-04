@@ -153,19 +153,35 @@ def test_long_payloads_are_truncated_but_stay_valid_json(tmp_path: Path) -> None
 # --------------------------------------------------------------- protocol log
 
 
-def test_protocol_log_can_be_disabled(tmp_path: Path) -> None:
+def test_wire_log_can_be_disabled(tmp_path: Path) -> None:
     log = InteractionLogger(tmp_path, protocol_log=False)
-    log.log_protocol_message("s", "stdio", {"jsonrpc": "2.0"})
+    log.log_frame("s", "stdio", "out", {"jsonrpc": "2.0", "id": 1, "method": "ping"})
     assert not log.protocol_path.exists()
     assert log.summary()["protocol_path"] is None
 
 
-def test_protocol_log_records_raw_messages(tmp_path: Path) -> None:
+def test_wire_log_records_both_directions_with_the_message_kind(tmp_path: Path) -> None:
+    """The wire log is complete because the host writes the frames itself."""
     log = InteractionLogger(tmp_path)
-    log.log_protocol_message("s", "streamable-http", {"jsonrpc": "2.0", "id": 1, "result": {}})
-    (record,) = read(log.protocol_path)
-    assert record["origin"] == "server"
-    assert record["message"]["jsonrpc"] == "2.0"
+    log.log_frame("s", "stdio", "out", {"jsonrpc": "2.0", "id": 1, "method": "tools/list"})
+    log.log_frame("s", "stdio", "in", {"jsonrpc": "2.0", "id": 1, "result": {"tools": []}})
+    sent, received = read(log.protocol_path)
+    assert (sent["direction"], sent["kind"], sent["method"]) == ("out", "request", "tools/list")
+    assert (received["direction"], received["kind"]) == ("in", "response")
+    assert sent["id"] == received["id"] == 1
+    assert log.summary()["frames"] == {"request": 1, "response": 1}
+
+
+def test_wire_log_marks_lifecycle_messages(tmp_path: Path) -> None:
+    """`initialize` and `notifications/initialized` are synchronisation, not calls."""
+    log = InteractionLogger(tmp_path)
+    log.log_frame("s", "stdio", "out", {"jsonrpc": "2.0", "id": 1, "method": "initialize"})
+    log.log_frame("s", "stdio", "out", {"jsonrpc": "2.0", "method": "notifications/initialized"})
+    log.log_frame("s", "stdio", "out", {"jsonrpc": "2.0", "id": 2, "method": "tools/call"})
+    handshake, initialized, call = read(log.protocol_path)
+    assert handshake["lifecycle"] is True and handshake["kind"] == "request"
+    assert initialized["lifecycle"] is True and initialized["kind"] == "notification"
+    assert call["lifecycle"] is False
 
 
 def test_two_sessions_write_to_different_files(tmp_path: Path) -> None:

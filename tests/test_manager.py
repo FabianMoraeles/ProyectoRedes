@@ -29,7 +29,6 @@ async def test_status_records_the_handshake_details(alpha_manager: MCPManager) -
     assert status.state == "connected"
     assert status.tool_count == 3
     assert status.protocol_version
-    assert status.negotiated_mode == "legacy"
     assert status.error is None
 
 
@@ -102,7 +101,6 @@ async def test_a_server_that_cannot_start_is_isolated(
         transport="stdio",
         command=sys.executable,
         args=["-c", "raise SystemExit(1)"],
-        mode="legacy",
         connect_timeout_seconds=20.0,
     )
     manager = MCPManager([broken, fixture_server("alpha", "alpha_server.py")], interaction_log, tmp_path)
