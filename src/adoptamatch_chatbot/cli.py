@@ -57,6 +57,21 @@ def build_parser() -> argparse.ArgumentParser:
         help="Do not write the raw JSON-RPC message log.",
     )
     parser.add_argument(
+        "--no-color",
+        action="store_true",
+        help="Disable colour. The NO_COLOR environment variable does the same.",
+    )
+    parser.add_argument(
+        "--ascii",
+        action="store_true",
+        help="Use ASCII glyphs instead of Unicode, for terminals that cannot render them.",
+    )
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Start with full tool arguments and results shown. Toggle later with /verbose.",
+    )
+    parser.add_argument(
         "--check",
         action="store_true",
         help="Validate the configuration, connect, list the tools and exit.",
@@ -135,7 +150,7 @@ async def run(args: argparse.Namespace, config: AppConfig, presenter: Presenter)
 
 def main() -> None:
     args = build_parser().parse_args()
-    presenter = Presenter()
+    presenter = Presenter(no_color=args.no_color, ascii_only=args.ascii, verbose=args.verbose)
 
     try:
         config = load_config(

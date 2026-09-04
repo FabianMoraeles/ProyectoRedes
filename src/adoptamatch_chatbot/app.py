@@ -20,6 +20,7 @@ reported and the user can keep talking.
 from __future__ import annotations
 
 import asyncio
+import time
 from typing import Any
 
 from adoptamatch_chatbot.conversation import Conversation
@@ -55,9 +56,10 @@ no large tables.
 
 COMMANDS = {
     "/help": "Show this list of commands.",
-    "/servers": "Configured MCP servers with transport, state and tool count.",
+    "/servers": "Configured MCP servers with transport, state, protocol and tool count.",
     "/tools": "Every discovered tool and the server that owns it.",
-    "/logs": "Path to the current interaction log plus a summary and recent events.",
+    "/logs": "Where the logs are, a summary, and the most recent events.",
+    "/verbose": "Toggle full tool arguments and results (compact by default).",
     "/clear": "Forget the conversation context (asks for confirmation).",
     "/exit": "Close every MCP client and process, then quit.",
 }
@@ -83,6 +85,8 @@ class ChatApp:
         self.system_prompt = system_prompt
         self.conversation = Conversation()
         self.should_exit = False
+        #: Tool calls made during the turn in progress, for the turn footer.
+        self.turn_tool_calls = 0
 
     # ------------------------------------------------------------------ tools
 
@@ -109,6 +113,7 @@ class ChatApp:
         """Run one full user turn and return the final assistant text."""
         self.conversation.add_user(user_text)
         tools = self.tool_specs()
+        self.turn_tool_calls = 0
 
         for iteration in range(self.max_tool_iterations):
             try:
@@ -145,6 +150,7 @@ class ChatApp:
                     results.append((call.id, str(exc), True))
                     continue
                 self.ui.tool_result(outcome)
+                self.turn_tool_calls += 1
                 results.append((call.id, outcome.text, not outcome.ok))
 
             self.conversation.add_raw(self.provider.tool_result_message(results))
@@ -189,6 +195,13 @@ class ChatApp:
             self.ui.tools(self.manager.tools)
         elif command == "/logs":
             self.ui.logs(self.log.summary(), self.log.tail(10))
+        elif command == "/verbose":
+            self.ui.set_verbose(not self.ui.verbose)
+            self.ui.success(
+                "Verbose mode on: full tool arguments and results."
+                if self.ui.verbose
+                else "Compact mode on: arguments and results are abbreviated."
+            )
         elif command == "/clear":
             if await self._confirm("Erase the conversation context?"):
                 self.conversation.clear()
@@ -209,9 +222,9 @@ class ChatApp:
         """Read-evaluate-print until ``/exit``, Ctrl-D or Ctrl-C."""
         while not self.should_exit:
             try:
-                line = await asyncio.to_thread(input, "you > ")
+                line = await asyncio.to_thread(input, self.ui.prompt_text())
             except (EOFError, KeyboardInterrupt):
-                self.ui.info("\nInput closed.")
+                self.ui.info("Input closed.")
                 return
 
             line = line.strip()
@@ -220,9 +233,11 @@ class ChatApp:
             if await self.handle_command(line):
                 continue
 
+            started = time.perf_counter()
             try:
                 text = await self.handle_message(line)
             except KeyboardInterrupt:
                 self.ui.warn("Turn interrupted. The session is still open.")
                 continue
             self.ui.assistant(text)
+            self.ui.turn_summary(self.turn_tool_calls, int((time.perf_counter() - started) * 1000))
