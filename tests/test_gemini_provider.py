@@ -117,7 +117,9 @@ class TestIncomingTranslation:
     ) -> None:
         provider = make_provider()
         call_part = SimpleNamespace(
-            text=None, function_call=SimpleNamespace(name="search_animals", args={"species": "cat"})
+            text=None,
+            function_call=SimpleNamespace(name="search_animals", args={"species": "cat"}),
+            thought_signature=b"opaque-signature",
         )
         fake_response = SimpleNamespace(
             candidates=[
@@ -145,6 +147,27 @@ class TestIncomingTranslation:
         assert call.arguments == {"species": "cat"}
         # The id must resolve back to the same name for the reply.
         assert provider._call_names[call.id] == "search_animals"
+        # The thought signature must be carried into raw_content, or Gemini's
+        # thinking models reject the next request when this turn is echoed back.
+        assert result.raw_content[0]["thought_signature"] == b"opaque-signature"
+
+    @pytest.mark.asyncio
+    async def test_a_tool_use_block_replays_its_thought_signature_on_the_next_turn(self) -> None:
+        provider = make_provider()
+        message = {
+            "role": "assistant",
+            "content": [
+                {
+                    "type": "tool_use",
+                    "id": "call_1",
+                    "name": "search_animals",
+                    "input": {"species": "cat"},
+                    "thought_signature": b"opaque-signature",
+                }
+            ],
+        }
+        content = provider._to_content(message)
+        assert content.parts[0].thought_signature == b"opaque-signature"
 
     @pytest.mark.asyncio
     async def test_no_candidates_is_reported_as_an_llm_error_not_an_index_crash(

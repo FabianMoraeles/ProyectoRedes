@@ -15,6 +15,11 @@ Gemini has no equivalent of Anthropic's per-call ``tool_use_id``: a
 pair a call with its result (:meth:`ChatApp.handle_message` threads it through
 unchanged), so one is minted here per call and mapped back to the name when the
 matching ``function_response`` is built.
+
+Gemini's thinking models also attach an opaque ``thought_signature`` to each
+``function_call`` part; it must be replayed unchanged when that turn is sent
+back as history, or the next request is rejected with HTTP 400. It is carried
+through ``raw_content`` alongside the call, untouched by the host.
 """
 
 from __future__ import annotations
@@ -114,7 +119,17 @@ class GeminiProvider:
                 arguments = dict(part.function_call.args or {})
                 tool_calls.append(ToolCall(id=call_id, name=part.function_call.name, arguments=arguments))
                 raw_blocks.append(
-                    {"type": "tool_use", "id": call_id, "name": part.function_call.name, "input": arguments}
+                    {
+                        "type": "tool_use",
+                        "id": call_id,
+                        "name": part.function_call.name,
+                        "input": arguments,
+                        # Gemini's thinking models require this opaque blob to be
+                        # replayed verbatim on the function_call part when the turn
+                        # is echoed back in the next request; omitting it is a 400.
+                        # https://ai.google.dev/gemini-api/docs/thought-signatures
+                        "thought_signature": part.thought_signature,
+                    }
                 )
 
         usage = response.usage_metadata
@@ -166,7 +181,7 @@ class GeminiProvider:
                 parts.append(types.Part(text=block["text"]))
             elif block.get("type") == "tool_use":
                 call = types.FunctionCall(name=block["name"], args=block["input"])
-                parts.append(types.Part(function_call=call))
+                parts.append(types.Part(function_call=call, thought_signature=block.get("thought_signature")))
         return parts
 
     def _result_part(self, block: dict[str, Any]) -> types.Part:
