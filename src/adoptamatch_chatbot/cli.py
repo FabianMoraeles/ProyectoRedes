@@ -45,7 +45,9 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Path to servers.toml. Defaults to $MCP_SERVERS_CONFIG or config/servers.toml.",
     )
-    parser.add_argument("--model", default=None, help="Override ANTHROPIC_MODEL for this run.")
+    parser.add_argument(
+        "--model", default=None, help="Override the model id (ANTHROPIC_MODEL or GEMINI_MODEL) for this run."
+    )
     parser.add_argument(
         "--offline",
         action="store_true",
@@ -84,6 +86,10 @@ def build_provider(config: AppConfig, offline: bool) -> LLMProvider:
     """Pick the provider. The rest of the app never learns which one it got."""
     if offline:
         return ScriptedProvider(responder=offline_responder, model="offline-router")
+    if config.provider == "gemini":
+        from adoptamatch_chatbot.llm.gemini_provider import GeminiProvider
+
+        return GeminiProvider(api_key=config.gemini_api_key, model=config.model)
     from adoptamatch_chatbot.llm.anthropic_provider import AnthropicProvider
 
     return AnthropicProvider(api_key=config.anthropic_api_key, model=config.model)

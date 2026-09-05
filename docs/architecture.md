@@ -44,7 +44,8 @@ through the name the host prefixes onto each tool description.
 │  presentation.py  ── all rendering                                  │                 │
 │                                                                     │                 │
 │  llm/base.py        LLMProvider protocol ───────────────────────────┘                 │
-│  llm/anthropic_provider.py   real                                                     │
+│  llm/anthropic_provider.py   real, paid                                               │
+│  llm/gemini_provider.py      real, free tier (LLM_PROVIDER=gemini)                    │
 │  llm/scripted.py             tests and --offline                                      │
 │                                                                                       │
 │  mcp_host/manager.py  MCPManager                                                      │
@@ -67,6 +68,27 @@ The Anthropic SDK ships a tool runner that would drive the loop automatically. I
 is not used here, deliberately: the assignment is about being an MCP host, and the
 loop is where routing, logging and timeout policy live. Writing it explicitly makes
 those visible and testable. The provider class is reduced to a single-turn adapter.
+
+### Two interchangeable LLM providers, picked by `LLM_PROVIDER`
+
+The assignment requires "a connection to an LLM at the API level" (requirement
+1) but names no vendor; the brief only *suggests* Anthropic because new accounts
+get $5 of trial credit. That credit is not renewable, so a second, genuinely
+free option was added: Google's Gemini API, which needs no billing setup and
+still supports tool calling. `llm/anthropic_provider.py` and
+`llm/gemini_provider.py` are both single-turn adapters behind the same
+`LLMProvider` Protocol (`llm/base.py`); `cli.py::build_provider()` is the one
+place that picks between them, so nothing in `app.py`, the MCP manager or the
+logger changes based on which model is answering. OpenAI's API was considered
+and rejected for this role: it has no free tier at all, so it does not solve
+the problem a free option is meant to solve.
+
+The two SDKs disagree on how a tool call is represented on the wire (Anthropic
+gives every `tool_use` block a persistent id to pair with its `tool_result`;
+Gemini's `function_call` carries only a name), so `GeminiProvider` mints its own
+id per call and keeps a local id→name map to translate the reply back. That
+translation is the only place a provider difference leaks past the `LLMProvider`
+interface.
 
 ### MCP is implemented directly over JSON-RPC, with no MCP SDK
 

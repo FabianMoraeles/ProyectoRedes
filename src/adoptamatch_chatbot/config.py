@@ -30,6 +30,9 @@ else:  # pragma: no cover - exercised only on Python 3.10
     import tomli as tomllib
 
 DEFAULT_MODEL = "claude-opus-5"
+DEFAULT_GEMINI_MODEL = "gemini-flash-latest"
+DEFAULT_PROVIDER = "anthropic"
+SUPPORTED_PROVIDERS = ("anthropic", "gemini")
 DEFAULT_SERVERS_CONFIG = "config/servers.toml"
 DEFAULT_LOG_DIR = "logs"
 
@@ -42,7 +45,9 @@ class ConfigError(RuntimeError):
 class AppConfig:
     """Everything the chatbot needs to start."""
 
+    provider: str
     anthropic_api_key: str
+    gemini_api_key: str
     model: str
     servers_config_path: Path
     log_dir: Path
@@ -54,13 +59,6 @@ class AppConfig:
     def config_dir(self) -> Path:
         """Directory of ``servers.toml``; relative server paths resolve against it."""
         return self.servers_config_path.parent
-
-
-def _require_env(name: str, hint: str) -> str:
-    value = os.environ.get(name, "").strip()
-    if not value:
-        raise ConfigError(f"{name} is not set. {hint}")
-    return value
 
 
 def load_server_configs(path: Path) -> list[ServerConfig]:
@@ -135,16 +133,29 @@ def load_config(
     if env_file.is_file():
         load_dotenv(env_file, override=False)
 
-    if require_api_key:
-        api_key = _require_env(
-            "ANTHROPIC_API_KEY",
-            "Copy .env.example to .env and add your key, or export it in the shell. "
-            "Run with --offline to try the chatbot without an API key.",
-        )
-    else:
-        api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    provider = os.environ.get("LLM_PROVIDER", "").strip().lower() or DEFAULT_PROVIDER
+    if provider not in SUPPORTED_PROVIDERS:
+        raise ConfigError(f"LLM_PROVIDER must be one of {', '.join(SUPPORTED_PROVIDERS)}, got '{provider}'.")
 
-    model = os.environ.get("ANTHROPIC_MODEL", "").strip() or DEFAULT_MODEL
+    anthropic_api_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
+    gemini_api_key = os.environ.get("GEMINI_API_KEY", "").strip()
+
+    if require_api_key:
+        if provider == "anthropic" and not anthropic_api_key:
+            raise ConfigError(
+                "ANTHROPIC_API_KEY is not set. Copy .env.example to .env and add your key, "
+                "set LLM_PROVIDER=gemini for a free alternative, or run with --offline."
+            )
+        if provider == "gemini" and not gemini_api_key:
+            raise ConfigError(
+                "GEMINI_API_KEY is not set. Get a free key at https://aistudio.google.com/apikey, "
+                "add it to .env, or run with --offline."
+            )
+
+    if provider == "gemini":
+        model = os.environ.get("GEMINI_MODEL", "").strip() or DEFAULT_GEMINI_MODEL
+    else:
+        model = os.environ.get("ANTHROPIC_MODEL", "").strip() or DEFAULT_MODEL
     path = servers_config or Path(os.environ.get("MCP_SERVERS_CONFIG", DEFAULT_SERVERS_CONFIG))
     log_dir = Path(os.environ.get("LOG_DIR", DEFAULT_LOG_DIR))
     log_level = os.environ.get("LOG_LEVEL", "INFO").strip().upper()
@@ -158,7 +169,9 @@ def load_config(
         raise ConfigError("MAX_TOOL_ITERATIONS must be at least 1.")
 
     return AppConfig(
-        anthropic_api_key=api_key,
+        provider=provider,
+        anthropic_api_key=anthropic_api_key,
+        gemini_api_key=gemini_api_key,
         model=model,
         servers_config_path=path.resolve(),
         log_dir=log_dir,

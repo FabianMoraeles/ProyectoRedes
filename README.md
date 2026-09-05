@@ -83,8 +83,8 @@ hard to break.
                               │               ├── stdio ──▶ classmate ×2 (placeholders)
                               │               └── HTTP ───▶ pet-care     (own, remote)
                               ▼                            │
-                     Anthropic Messages API                ▼
-                                              mcp_host/logger.py ──▶ logs/*.jsonl
+                  Anthropic or Gemini API                  ▼
+                     (LLM_PROVIDER picks one)   mcp_host/logger.py ──▶ logs/*.jsonl
 ```
 
 Four boundaries, each of which can be tested on its own:
@@ -95,6 +95,7 @@ Four boundaries, each of which can be tested on its own:
 | `conversation.py` | The message history, trimmed turn-aware so a `tool_result` is never orphaned |
 | `llm/base.py` | A provider-neutral interface: one `complete()` call, one `tool_result_message()` builder |
 | `llm/anthropic_provider.py` | The Anthropic implementation (single turn; the host owns the loop) |
+| `llm/gemini_provider.py` | The Gemini implementation — a free alternative selected with `LLM_PROVIDER=gemini` |
 | `llm/scripted.py` | A deterministic stand-in used by every test and by `--offline` |
 | `mcp_wire/messages.py` | JSON-RPC framing, request ids, the four message kinds |
 | `mcp_wire/transports.py` | `StdioTransport` (pipes) and `StreamableHttpTransport` (TCP) |
@@ -176,15 +177,36 @@ accepts whatever the server answers with. `/servers` shows the negotiated revisi
 per server. There is no negotiation guesswork and no probing: the handshake is the
 first thing on the wire, exactly as the specification prescribes.
 
+## LLM provider
+
+The assignment asks for a connection to an LLM "at the API level" — it does not
+mandate a vendor. Two are implemented behind the same `LLMProvider` interface
+(`llm/base.py`), chosen with `LLM_PROVIDER` in `.env`:
+
+| Provider | `LLM_PROVIDER` | Cost | Get a key |
+| --- | --- | --- | --- |
+| Anthropic (Claude) | `anthropic` (default) | Paid; new accounts get $5 of trial credit | https://console.anthropic.com/ |
+| Google Gemini | `gemini` | Free tier, no card required | https://aistudio.google.com/apikey |
+
+Both support tool calling, which the whole host depends on to invoke MCP tools.
+OpenAI's API is not offered here because, unlike Gemini's, it has no free tier at
+all — so it would not solve the "no budget left" problem it might seem to.
+
+Adding a third provider is one new class implementing `complete()` and
+`tool_result_message()`, plus one branch in `cli.py::build_provider()` — see
+`docs/architecture.md`.
+
 ## Requirements
 
 - **Python 3.10+** (developed and tested on 3.12).
-- **No MCP SDK.** Runtime dependencies are `anthropic`, `httpx2`, `pydantic`,
-  `python-dotenv` and `rich`; a test asserts that none of them is an MCP SDK.
+- **No MCP SDK.** Runtime dependencies are `anthropic`, `google-genai`, `httpx2`,
+  `pydantic`, `python-dotenv` and `rich`; a test asserts that none of them is an
+  MCP SDK.
 - **[uv](https://docs.astral.sh/uv/)** for dependencies and the lockfile.
 - **Node.js 18+** — only for the official Filesystem server, launched via `npx`.
 - **Git** — only for the official Git server, launched via `uvx`.
-- An **Anthropic API key**, unless you run with `--offline`.
+- An **Anthropic or Gemini API key** (see "LLM provider" above), unless you run
+  with `--offline`.
 - The sibling repository [`adoptamatch-mcp`](../adoptamatch-mcp) cloned next to
   this one, if you want the shelter tools.
 
@@ -245,8 +267,11 @@ That connects every enabled server, lists the discovered tools and exits.
 
 | Variable | Required | Default | Meaning |
 | --- | --- | --- | --- |
-| `ANTHROPIC_API_KEY` | yes (not with `--offline`) | — | Your API key. Never committed. |
+| `LLM_PROVIDER` | no | `anthropic` | `anthropic` or `gemini`. See "LLM provider" above. |
+| `ANTHROPIC_API_KEY` | if provider is `anthropic` (not with `--offline`) | — | Your API key. Never committed. |
 | `ANTHROPIC_MODEL` | no | `claude-opus-5` | Model id. Kept here, never hard-coded in the source. |
+| `GEMINI_API_KEY` | if provider is `gemini` (not with `--offline`) | — | Your free API key. Never committed. |
+| `GEMINI_MODEL` | no | `gemini-flash-latest` | Model id; the `-latest` alias tracks Google's current free-tier Flash model. |
 | `MCP_SERVERS_CONFIG` | no | `config/servers.toml` | Path to the server inventory. |
 | `LOG_DIR` | no | `logs` | Where the JSONL session logs are written. |
 | `LOG_LEVEL` | no | `INFO` | Python logging level for the host itself. |
@@ -492,7 +517,10 @@ the source.
 
 | Symptom | Cause and fix |
 | --- | --- |
-| `ANTHROPIC_API_KEY is not set` | Copy `.env.example` to `.env` and fill it in, or run `--offline`. |
+| `ANTHROPIC_API_KEY is not set` | Copy `.env.example` to `.env` and fill it in, set `LLM_PROVIDER=gemini` for a free alternative, or run `--offline`. |
+| `GEMINI_API_KEY is not set` | Add a free key from https://aistudio.google.com/apikey to `.env`, or run `--offline`. |
+| `credit balance is too low` (Anthropic) | The trial credit is spent. Add credits, switch to `LLM_PROVIDER=gemini`, or run `--offline`. |
+| `Gemini's free-tier rate limit was reached` | Free-tier requests/minute or requests/day were exceeded. Wait, or switch to `LLM_PROVIDER=anthropic`. |
 | `MCP server configuration not found` | Copy `config/servers.example.toml` to `config/servers.toml`. |
 | A server shows `failed` with `timed out … during the handshake` | It never answered `initialize`. Read `logs/session-<id>.<server>.stderr.log` — the real error is almost always there. |
 | `filesystem` fails to start | Node.js is missing, or the scoped directory does not exist. Run `mkdir demo_workspace`. |
@@ -539,6 +567,7 @@ adoptamatch-chatbot/
 │   ├── llm/
 │   │   ├── base.py             provider-neutral interface
 │   │   ├── anthropic_provider.py
+│   │   ├── gemini_provider.py  free alternative (LLM_PROVIDER=gemini)
 │   │   └── scripted.py         test double and --offline router
 │   ├── mcp_wire/            hand-written MCP client, no SDK
 │   │   ├── messages.py      JSON-RPC framing and classification
