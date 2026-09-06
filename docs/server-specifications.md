@@ -147,25 +147,35 @@ the server was launched with, relative to *its* working directory —
 
 ## 5. `classmate_server_1` and `classmate_server_2`
 
-**Not yet integrated.** Two placeholder entries ship in
-`config/servers.example.toml` with `enabled = false`, and a test asserts that they
-do. The integration checklist is in [`classmate-servers.md`](classmate-servers.md).
-
-Fill in this table when the real servers are chosen:
+**One of two integrated.** `config/servers.example.toml` still ships the
+`classmate_server_1` / `classmate_server_2` placeholders with `enabled = false` (a
+test asserts that), because the *example* file must stay portable across
+machines. The real, local `config/servers.toml` (git-ignored) has
+`classmate_server_1` filled in and enabled, pointed at Camila Ramirez's
+`academic-planner-mcp`. The checklist used is in
+[`classmate-servers.md`](classmate-servers.md).
 
 | | Server 1 | Server 2 |
 | --- | --- | --- |
-| Author | | |
-| Repository | | |
-| Purpose | | |
-| Transport | | |
-| Launch command / URL | | |
-| Dependencies | | |
-| Tools exposed | | |
-| Name collisions with ours | | |
-| Risks noticed while reading the code | | |
-| Scenario demonstrated | | |
-| Date integrated | | |
+| Author | Camila Ramirez (`CamiR24`) | |
+| Repository | <https://github.com/CamiR24/academic-planner-mcp> (public) | |
+| Purpose | Academic task management: priority scoring, workload analysis, slack-time-aware study scheduling, study-technique recommendation, project decomposition | |
+| Transport | stdio | |
+| Launch command | `<venv>/Scripts/python.exe -m src.server`, cwd = the repository root. Their README also documents a `pip`/`venv` install (not `uv`); this project's `uv venv` + `uv pip install -r requirements.txt` was used instead to keep the classmate's virtual environment isolated from this host's own dependencies. | |
+| Dependencies | `mcp==1.29.1` only (their `requirements.txt`); official MCP SDK, low-level `Server` API | |
+| Tools exposed | `add_academic_task`, `get_upcoming_tasks`, `update_task_status`, `calculate_task_priority`, `analyze_workload`, `generate_study_schedule`, `recommend_study_technique`, `decompose_project` (8) | |
+| Name collisions with ours | None, against all 33 tools from `adoptamatch`, `filesystem`, `git` and `pet_care_remote` | |
+| Risks noticed while reading the code | Self-contained: local SQLite (`academic.db`, created in its own cwd) is its only I/O, no network calls, no shell execution, no credentials required. Safe to run with default privileges. | |
+| Scenario demonstrated | One turn, two chained tool calls: `add_academic_task` (register "Examen de Redes", CC3067, due 2026-09-15) then `get_upcoming_tasks`, both through Gemini (`LLM_PROVIDER=gemini`) end to end | |
+| Date integrated | 2026-09-06 | |
+
+**Confirms a provider fix, not a server-specific one.** Gemini's thinking models
+attach an opaque `thought_signature` to a `function_call` part that must be
+replayed unchanged on the next request; that bug was first found and fixed
+against `adoptamatch`'s `recommend_animals` (see `llm/gemini_provider.py`). This
+integration is the second, independently-written server the fix was verified
+against — evidence the fix is in `GeminiProvider` where it belongs, not a
+one-off patched around a single server's quirks.
 
 ---
 
@@ -177,6 +187,6 @@ Run this to regenerate the current list:
 uv run adoptamatch-chatbot --offline --check
 ```
 
-At the time of writing, with the four available servers connected: **33 tools**
-across `adoptamatch` (5), `filesystem` (14), `git` (12) and `pet_care_remote` (2),
-with no name collisions — so no tool needed qualifying.
+At the time of writing, with all five available servers connected: **41 tools**
+across `adoptamatch` (5), `filesystem` (14), `git` (12), `pet_care_remote` (2) and
+`academic_planner` (8), with no name collisions — so no tool needed qualifying.

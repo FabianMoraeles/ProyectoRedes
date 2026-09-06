@@ -2,10 +2,16 @@
 
 Two entries are reserved in `config/servers.example.toml`, `classmate_server_1`
 and `classmate_server_2`, both shipping `enabled = false`. A test asserts they stay
-disabled until they are real.
+disabled until they are real. The example file stays generic on purpose — each
+student's real, filled-in entries live only in their own git-ignored
+`config/servers.toml`.
 
-**This requirement is not met until two real servers are connected and a scenario
-is demonstrated with each.** Do not mark it done before then.
+**Status: 1 of 2 integrated.** `classmate_server_1` is Camila Ramirez's
+`academic-planner-mcp`, connected and demonstrated — see
+[`server-specifications.md` §5](server-specifications.md#5-classmate_server_1-and-classmate_server_2)
+for the tools, the risk review and the scenario run. `classmate_server_2` is still
+open. **The requirement is not met until both are connected and demonstrated** —
+do not mark it done before then.
 
 ## Before you run anything
 
@@ -60,9 +66,6 @@ an answer.
    timeout_seconds = 60
    connect_timeout_seconds = 60
    ```
-
-   Prefer `mode = "legacy"` if their SDK is MCP 1.x; leave the default `auto`
-   otherwise. The host retries in legacy mode automatically either way.
 
 4. **Verify it is listed but not connected:**
 
