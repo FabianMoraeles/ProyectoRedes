@@ -17,6 +17,16 @@ from google.genai import errors
 from adoptamatch_chatbot.llm.base import LLMError, ToolSpec
 from adoptamatch_chatbot.llm.gemini_provider import GeminiProvider
 
+TEXT_ONLY_RESPONSE = SimpleNamespace(
+    candidates=[
+        SimpleNamespace(
+            content=SimpleNamespace(parts=[SimpleNamespace(text="hi", function_call=None)]),
+            finish_reason=SimpleNamespace(value="STOP"),
+        )
+    ],
+    usage_metadata=None,
+)
+
 
 def make_provider() -> GeminiProvider:
     return GeminiProvider(api_key="fake-key-for-tests", model="gemini-flash-latest")
@@ -217,3 +227,74 @@ class TestErrorMapping:
 
         with pytest.raises(LLMError, match="rate limit"):
             await provider.complete(system="s", messages=[{"role": "user", "content": "hi"}], tools=[])
+
+
+class TestRetryOn503:
+    """A 503 is Gemini's free-tier way of saying "try again shortly"; it is the
+    single most common failure hit while building this provider, so it is worth
+    absorbing with a bounded, backed-off retry instead of failing the turn.
+    """
+
+    def _server_error(self, code: int, message: str) -> errors.ServerError:
+        return errors.ServerError(code=code, response_json={"error": {"code": code, "message": message}})
+
+    def _patch_sleep(self, monkeypatch: pytest.MonkeyPatch) -> list[float]:
+        recorded: list[float] = []
+
+        async def fake_sleep(seconds: float) -> None:
+            recorded.append(seconds)
+
+        monkeypatch.setattr("adoptamatch_chatbot.llm.gemini_provider.asyncio.sleep", fake_sleep)
+        return recorded
+
+    @pytest.mark.asyncio
+    async def test_a_503_is_retried_with_backoff_and_can_still_succeed(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        provider = make_provider()
+        sleeps = self._patch_sleep(monkeypatch)
+        attempts = {"n": 0}
+
+        async def fake_generate_content(**kwargs: object) -> SimpleNamespace:
+            attempts["n"] += 1
+            if attempts["n"] < 3:
+                raise self._server_error(503, "overloaded")
+            return TEXT_ONLY_RESPONSE
+
+        monkeypatch.setattr(provider._client.aio.models, "generate_content", fake_generate_content)
+
+        result = await provider.complete(system="s", messages=[{"role": "user", "content": "hi"}], tools=[])
+        assert result.text == "hi"
+        assert attempts["n"] == 3
+        assert sleeps == [1.0, 2.0]  # exponential backoff, not hammering the API
+
+    @pytest.mark.asyncio
+    async def test_503_gives_up_after_the_retry_budget_and_raises(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        provider = make_provider()
+        self._patch_sleep(monkeypatch)
+
+        async def fake_generate_content(**kwargs: object) -> None:
+            raise self._server_error(503, "overloaded")
+
+        monkeypatch.setattr(provider._client.aio.models, "generate_content", fake_generate_content)
+
+        with pytest.raises(LLMError, match="503"):
+            await provider.complete(system="s", messages=[{"role": "user", "content": "hi"}], tools=[])
+
+    @pytest.mark.asyncio
+    async def test_a_non_503_server_error_is_not_retried(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Retrying a plain 500 would just delay the same failure."""
+        provider = make_provider()
+        attempts = {"n": 0}
+
+        async def fake_generate_content(**kwargs: object) -> None:
+            attempts["n"] += 1
+            raise self._server_error(500, "internal error")
+
+        monkeypatch.setattr(provider._client.aio.models, "generate_content", fake_generate_content)
+
+        with pytest.raises(LLMError, match="500"):
+            await provider.complete(system="s", messages=[{"role": "user", "content": "hi"}], tools=[])
+        assert attempts["n"] == 1

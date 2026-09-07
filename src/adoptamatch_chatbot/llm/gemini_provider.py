@@ -20,10 +20,17 @@ Gemini's thinking models also attach an opaque ``thought_signature`` to each
 ``function_call`` part; it must be replayed unchanged when that turn is sent
 back as history, or the next request is rejected with HTTP 400. It is carried
 through ``raw_content`` alongside the call, untouched by the host.
+
+An HTTP 503 ("the model is currently experiencing high demand") shows up often
+enough on the free tier that it is retried a few times with a short backoff
+before giving up; every other error (bad key, no credit, unknown model, a 429
+quota) fails the turn immediately, since retrying those would only delay the
+same outcome.
 """
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 from google import genai
@@ -39,6 +46,14 @@ RATE_LIMIT_HINT = (
     "Gemini's free-tier rate limit was reached (requests per minute or per day). "
     "Wait a moment and try again -- see https://ai.google.dev/gemini-api/docs/rate-limits."
 )
+
+#: HTTP 503 from Gemini means "the model is temporarily overloaded", observed
+#: often enough on the free tier that it is worth absorbing here rather than
+#: failing the whole turn on the first hit. Other errors (bad key, no credit,
+#: unknown model, 429 quota) are not retried -- retrying those would just delay
+#: the same failure.
+MAX_503_RETRIES = 3
+RETRY_BACKOFF_SECONDS = 1.0
 
 
 class GeminiProvider:
@@ -87,18 +102,26 @@ class GeminiProvider:
             config.tools = [types.Tool(function_declarations=declarations)]
             config.automatic_function_calling = types.AutomaticFunctionCallingConfig(disable=True)
 
-        try:
-            response = await self._client.aio.models.generate_content(
-                model=self.model,
-                contents=contents,
-                config=config,
-            )
-        except errors.ClientError as exc:
-            raise LLMError(self._explain_client_error(exc)) from exc
-        except errors.ServerError as exc:
-            raise LLMError(f"Gemini's servers had a problem (HTTP {exc.code}): {exc.message}") from exc
-        except errors.APIError as exc:
-            raise LLMError(f"Gemini returned HTTP {exc.code}: {exc.message}") from exc
+        response = None
+        for attempt in range(MAX_503_RETRIES + 1):
+            try:
+                response = await self._client.aio.models.generate_content(
+                    model=self.model,
+                    contents=contents,
+                    config=config,
+                )
+                break
+            except errors.ClientError as exc:
+                raise LLMError(self._explain_client_error(exc)) from exc
+            except errors.ServerError as exc:
+                if exc.code != 503 or attempt == MAX_503_RETRIES:
+                    raise LLMError(
+                        f"Gemini's servers had a problem (HTTP {exc.code}): {exc.message}"
+                    ) from exc
+                await asyncio.sleep(RETRY_BACKOFF_SECONDS * (2**attempt))
+            except errors.APIError as exc:
+                raise LLMError(f"Gemini returned HTTP {exc.code}: {exc.message}") from exc
+        assert response is not None  # every loop exit above either breaks or raises
 
         candidates = response.candidates or []
         if not candidates:
