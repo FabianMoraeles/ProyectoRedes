@@ -302,12 +302,15 @@ connect_timeout_seconds = 60          # ceiling on one connection attempt
 name = "pet_care_remote"
 transport = "streamable-http"
 url = "http://127.0.0.1:8080/mcp"
-mode = "legacy"
+timeout_seconds = 30
 ```
 
-The file ships with six entries: the own local server, the two official reference
-servers, the own remote server, and two **disabled placeholders** for the
-classmates' servers.
+The example file ships with six entries: the own local server, the two official
+reference servers, the own remote server, and two **disabled placeholders** for
+classmates' servers. This project's own local `config/servers.toml` (git-ignored)
+has all six filled in and enabled, plus two more real classmate servers beyond
+the two required — see [`docs/server-specifications.md`](docs/server-specifications.md)
+§5 and §6 for what each one does and how it was verified.
 
 ### Tool names and collisions
 

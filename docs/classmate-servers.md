@@ -6,11 +6,20 @@ disabled until they are real. The example file stays generic on purpose — each
 student's real, filled-in entries live only in their own git-ignored
 `config/servers.toml`.
 
-**Status: 2 of 2 integrated.** `classmate_server_1` is Camila Ramirez's
-`academic-planner-mcp`; `classmate_server_2` is Diego Lopez's
+**Status: 2 of 2 required, 4 integrated in total.** `classmate_server_1` is
+Camila Ramirez's `academic-planner-mcp`; `classmate_server_2` is Diego Lopez's
 `spring-architecture-analyzer-mcp` — see
 [`server-specifications.md` §5](server-specifications.md#5-classmate_server_1-and-classmate_server_2)
 for the tools, the risk review and the scenario run for each. Requirement met.
+
+Two more were connected beyond what was required — Jonialen's `brewops-mcp` (Go,
+hand-written protocol, no MCP SDK) and NESHGP04's `mcp-server-rrhh-construccion`
+(Python, official SDK) — see
+[`server-specifications.md` §6](server-specifications.md#6-additional-classmate-servers-beyond-the-requirement).
+Across all four: three different languages/SDKs plus this project's own
+hand-written client, all interoperating with zero coordination between authors —
+the strongest evidence available that MCP works as a real, implementation-neutral
+protocol rather than one that merely happens to connect to itself.
 
 ## Before you run anything
 

@@ -11,9 +11,11 @@ git -C demo_workspace/demo-repo log --oneline   # note the starting point
 uv run adoptamatch-chatbot
 ```
 
-Show the start-up table: six configured servers, connected (`pet_care_remote`
-needs the local remote server running first — see step 5), the transport and
-negotiated protocol version of each, and the tool count.
+Show the start-up table: eight configured servers, connected (`pet_care_remote`
+needs the local remote server running first — see step 5; `brewops` needs its
+Docker image built and its named volume created first — see
+`docs/server-specifications.md` §6), the transport and negotiated protocol
+version of each, and the tool count.
 
 ---
 
@@ -152,9 +154,9 @@ Point out:
 
 ---
 
-## 6 — Classmates' servers (2 min)
+## 6 — Classmates' servers (3 min)
 
-Two independently-written servers, neither using this project's code:
+Four independently-written servers, none using this project's code:
 
 ```
 Agrega una tarea academica: examen de Redes, curso CC3067, tipo examen, fecha limite 2026-09-15, 4 horas estimadas, dificultad alta, importancia alta. Luego dime que tareas tengo pendientes.
@@ -174,10 +176,22 @@ one and Camila's low-level one) — four chained tool calls in one turn. The fix
 repo has a deliberate `OrderService ↔ PricingService` cycle and a
 `Controller → Repository` layer violation; both should appear in the answer.
 
-Point out, for both: none of their 15 combined tools collide with our 33, and the
-protocol version negotiated is `2025-06-18` for every server regardless of who
-wrote it or which SDK layer they used — the interoperability the assignment asks
-for, demonstrated rather than assumed.
+```
+I have a V60 recipe for the Guji coffee scaled to 350g of water -- what does the pour schedule look like? Separately, what is employee 5's vacation balance and their overtime pay for 2026-07?
+```
+
+Point out: **one turn, three tool calls, two servers** — `brewops.scale_recipe`,
+then `rrhh_construccion.get_vacation_balance` and
+`rrhh_construccion.calculate_overtime_pay`. `brewops` (Jonialen) is written in
+**Go**, over a hand-written JSON-RPC implementation with no MCP SDK — the same
+approach this project takes, in a different language; `rrhh_construccion`
+(NESHGP04) uses the official SDK's decorator API. Numbers in the answer should
+match their README's own worked examples exactly.
+
+Point out, for all four: none of their 30 combined tools collide with our 33,
+and the protocol version negotiated is `2025-06-18` for every server regardless
+of who wrote it, which language, or which SDK layer they used — the
+interoperability the assignment asks for, demonstrated rather than assumed.
 
 ---
 

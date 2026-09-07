@@ -186,6 +186,36 @@ the alias over pinning a dated model id for a long-running demo project.
 
 ---
 
+## 6. Additional classmate servers (beyond the requirement)
+
+Requirement 6 only asks for two; these two more were connected anyway, because
+each is an independent implementation and every one that interoperates cleanly
+is more evidence for the report, not less.
+
+| | Server 3 | Server 4 |
+| --- | --- | --- |
+| Author | Jonialen | NESHGP04 |
+| Repository | <https://github.com/Jonialen/brewops-mcp> (public) | <https://github.com/NESHGP04/mcp-server-rrhh-construccion> (public) |
+| Purpose | A speciality coffee shop's own records: catalogue, recipes, roast batches, and diagnosing a brew against its recipe | Fictional construction company HR: employee lookup, vacation balances with carry-over, overtime pay by shift multiplier, payroll and employment history |
+| Transport | stdio | stdio |
+| Language / stack | **Go**, single static binary, `CGO_ENABLED=0` with a pure-Go SQLite driver; run from this project as a Docker container (`docker run -i --rm -v brewops-data:/data brewops-mcp:1.0.0`) since no Go toolchain was available here | Python, official `mcp==2.1.1`, `MCPServer`/`FastMCP` decorator API; `<venv>/Scripts/python.exe server.py` |
+| Protocol implementation | **Hand-written directly over JSON-RPC, no MCP SDK** — the same approach this project takes, written independently in a different language. A fourth distinct implementation of the same spec now proven interoperable, next to our own, Camila's low-level `Server`, and Diego's FastMCP. | Official MCP SDK 2.x |
+| Tools exposed | `list_coffees`, `get_coffee`, `get_recipe`, `scale_recipe`, `diagnose_extraction`, `recommend_coffee`, `record_extraction`, `list_roast_batches`, `compare_roast_batches` (9) | `get_employee`, `search_employees`, `get_vacation_balance`, `calculate_overtime_pay`, `get_payroll_summary`, `get_employee_history` (6) |
+| Name collisions with ours | None, against the other 46 tools | None, against the other 46 tools |
+| Risks noticed while reading the code | Runs as a non-root distroless container; its only state is the SQLite file on the mounted named volume. No network calls, no shell execution. `-i` is required for the container to see stdin at all, documented clearly in their README. | Self-contained SQLite (`hr.db`), auto-seeded, fixed random seed so results are reproducible. All data explicitly fictional. No network calls, no shell execution, no credentials. |
+| Scenario demonstrated | One combined turn (below): `scale_recipe` for the Ethiopia Guji Uraga on V60 at 350 g of water | Same turn: `get_vacation_balance` and `calculate_overtime_pay` for employee 5, both matching their README's own worked examples exactly |
+| Date integrated | 2026-09-06 | 2026-09-06 |
+
+**One turn, three tool calls, two servers, through Gemini end to end:** asked in
+one message for a V60 pour schedule and, separately, an employee's vacation
+balance and overtime pay, the model called `brewops.scale_recipe`,
+`rrhh_construccion.get_vacation_balance` and
+`rrhh_construccion.calculate_overtime_pay` in the same turn and summarised all
+three correctly — exactly the point of a host that talks to several independent
+servers at once.
+
+---
+
 ## Tool inventory across all servers
 
 Run this to regenerate the current list:
@@ -194,7 +224,7 @@ Run this to regenerate the current list:
 uv run adoptamatch-chatbot --offline --check
 ```
 
-At the time of writing, with all six available servers connected: **48 tools**
+At the time of writing, with all eight available servers connected: **63 tools**
 across `adoptamatch` (5), `filesystem` (14), `git` (12), `pet_care_remote` (2),
-`academic_planner` (8) and `spring_architecture` (7), with no name collisions —
-so no tool needed qualifying.
+`academic_planner` (8), `spring_architecture` (7), `brewops` (9) and
+`rrhh_construccion` (6), with no name collisions — so no tool needed qualifying.
