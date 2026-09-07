@@ -10,7 +10,9 @@ authors = [{ name = "Fabian Mora" }]
 # there is no MCP SDK at runtime. httpx2 is the HTTP client the Streamable HTTP
 # transport is built on. anthropic and google-genai are the two interchangeable
 # LLMProvider backends (llm/base.py); only one is used per run, picked by
-# LLM_PROVIDER.
+# LLM_PROVIDER. starlette/uvicorn/websockets serve the optional browser
+# front end (adoptamatch_chatbot.web) -- an alternative presentation layer
+# over the same ChatApp/MCPManager the terminal uses, not a second host.
 dependencies = [
     "anthropic>=1.3.0",
     "google-genai>=1.21.0",
@@ -18,11 +20,15 @@ dependencies = [
     "pydantic>=2.13",
     "python-dotenv>=1.0",
     "rich>=13.7",
+    "starlette>=0.47",
     "tomli>=2.0; python_version < '3.11'",
+    "uvicorn>=0.34",
+    "websockets>=13",
 ]
 
 [project.scripts]
 adoptamatch-chatbot = "adoptamatch_chatbot.cli:main"
+adoptamatch-chatbot-web = "adoptamatch_chatbot.web.server:main"
 
 [dependency-groups]
 dev = [

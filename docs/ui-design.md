@@ -191,3 +191,25 @@ NO_COLOR=1 uv run adoptamatch-chatbot --offline # the environment convention
 Running the same scenario under `--no-color` and confirming it is still fully
 readable is the quickest way to check that the accessibility rule in §3 still
 holds after a change.
+
+## 12. The browser front end
+
+`adoptamatch-chatbot-web` ([`src/adoptamatch_chatbot/web/static/index.html`](../src/adoptamatch_chatbot/web/static/index.html))
+is the same design translated to a different medium, not a different design.
+Every rule above still applies, just rendered differently because a browser
+offers things a terminal cannot:
+
+| Rule here | Terminal | Browser |
+| --- | --- | --- |
+| Hierarchy | plain foreground for the answer, dimmed/indented tool lines | full-width message bubbles for the answer; tool activity as small, collapsed-by-default `<details>` cards |
+| Colour is never the only signal | glyph + word (`✓ ok`, `✗ failed`) | the same glyph + word, plus the card is collapsed vs. expanded — never colour alone |
+| Feedback | a named spinner (`thinking...`) | a pulsing-dot indicator with the same wording, driven by the same `thinking` start/end event |
+| Progressive disclosure | compact by default, `/verbose` for full payloads | every tool call and result is sent to the browser at full fidelity always; the `<details>` element *is* the disclosure control — a click, not a mode |
+| Accessibility | `--no-color`, `--ascii`, `NO_COLOR` | `prefers-color-scheme` (light/dark), and text scales with the browser's own zoom since nothing is a fixed-size image |
+
+The one thing a terminal cannot do at all — stream partial results the instant
+they happen, instead of one paragraph at a time — is why tool calls appear
+live in the browser: `web/server.py` forwards each presenter event to the
+socket as `ChatApp.handle_message` produces it, not after the turn ends. See
+[`docs/architecture.md`](architecture.md) §"One host, two presentation layers"
+for how that is wired without touching `ChatApp` itself.

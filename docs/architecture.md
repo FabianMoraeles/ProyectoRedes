@@ -176,6 +176,31 @@ in `servers.toml`, never in a constant. Adding a classmate's server is an edit t
 file, and the tests assert that the shipped example file parses and that the
 classmate placeholders ship disabled.
 
+### One host, two presentation layers
+
+`adoptamatch_chatbot.web` (a browser chat, `adoptamatch-chatbot-web`) exists
+alongside the terminal, not instead of it. `ChatApp.handle_message` was already
+written against a narrow six-method surface of `Presenter` (`thinking`,
+`tool_call`, `tool_result`, `assistant`, `warn`, `error`), called live and
+unawaited as the turn progresses -- so adding a second presentation layer meant
+implementing that same surface once more (`web/presenter.py`, `WebPresenter`),
+each method pushing a JSON-serialisable event onto an `asyncio.Queue` instead of
+printing. A task in `web/server.py` drains that queue onto a WebSocket
+concurrently with `handle_message` running, so a tool call and its result reach
+the browser as they happen. `ChatApp`, `MCPManager`, `Conversation` and every
+`LLMProvider` are untouched -- not one line of already-tested conversation logic
+changed to support this, the same guarantee the `LLMProvider` Protocol makes for
+swapping Anthropic and Gemini one layer down.
+
+Two consequences of that boundary: `/clear`'s confirmation prompt (`input()` in
+the terminal) has no equivalent over a socket, so the web server never calls
+`ChatApp.handle_command` at all -- it implements the handful of slash commands
+directly against `MCPManager`/`InteractionLogger` and lets the browser confirm
+destructive ones with a native `confirm()` before sending. And each WebSocket
+connection builds its own `Session` (one `ChatApp`, one `MCPManager`, one
+`InteractionLogger`), so two browser tabs are as isolated from each other as two
+terminal windows would be -- separate MCP subprocesses, separate session logs.
+
 ## Data flow of one tool call
 
 ```text

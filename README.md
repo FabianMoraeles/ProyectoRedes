@@ -63,9 +63,14 @@ hard to break.
 ## Architecture
 
 ```text
+        ┌───────────────────────┐        ┌──────────────────────────┐
+you ───▶│ cli.py · presentation │  or ──▶│ web/server.py            │
+        │ (terminal)            │        │ web/presenter.py + a browser │
+        └───────────┬───────────┘        └────────────┬─────────────┘
+                     └───────────────┬───────────────┘
+                                      ▼
                           ┌──────────────────────────┐
-              you ───────▶│  cli.py  ·  app.py       │
-                          │  conversation · presenter│
+                          │  app.py  ·  conversation  │
                           └───────┬──────────┬───────┘
                                   │          │
               tool schemas +      │          │  tools/call
@@ -80,12 +85,17 @@ hard to break.
                               │               ├── stdio ──▶ adoptamatch  (own, public repo)
                               │               ├── stdio ──▶ filesystem   (official reference)
                               │               ├── stdio ──▶ git          (official reference)
-                              │               ├── stdio ──▶ classmate ×2 (placeholders)
+                              │               ├── stdio ──▶ classmate ×N (see server-specifications.md)
                               │               └── HTTP ───▶ pet-care     (own, remote)
                               ▼                            │
                   Anthropic or Gemini API                  ▼
                      (LLM_PROVIDER picks one)   mcp_host/logger.py ──▶ logs/*.jsonl
 ```
+
+Two presentation layers, one host underneath: the terminal and the browser both
+end at the same `app.py::ChatApp`, so everything below that line — routing,
+timeouts, logging, which LLM answers — is identical regardless of which one is
+running.
 
 Four boundaries, each of which can be tested on its own:
 
@@ -97,6 +107,8 @@ Four boundaries, each of which can be tested on its own:
 | `llm/anthropic_provider.py` | The Anthropic implementation (single turn; the host owns the loop) |
 | `llm/gemini_provider.py` | The Gemini implementation — a free alternative selected with `LLM_PROVIDER=gemini` |
 | `llm/scripted.py` | A deterministic stand-in used by every test and by `--offline` |
+| `web/presenter.py` | `Presenter`'s six `ChatApp`-facing methods, emitting JSON events instead of printing |
+| `web/server.py` | Starlette app: one WebSocket protocol, one `ChatApp`/`MCPManager` per browser tab |
 | `mcp_wire/messages.py` | JSON-RPC framing, request ids, the four message kinds |
 | `mcp_wire/transports.py` | `StdioTransport` (pipes) and `StreamableHttpTransport` (TCP) |
 | `mcp_wire/session.py` | The MCP lifecycle: handshake, `tools/list`, `tools/call` |
@@ -200,7 +212,8 @@ Adding a third provider is one new class implementing `complete()` and
 
 - **Python 3.10+** (developed and tested on 3.12).
 - **No MCP SDK.** Runtime dependencies are `anthropic`, `google-genai`, `httpx2`,
-  `pydantic`, `python-dotenv` and `rich`; a test asserts that none of them is an
+  `pydantic`, `python-dotenv`, `rich`, and (for the optional web interface)
+  `starlette`, `uvicorn` and `websockets`; a test asserts that none of them is an
   MCP SDK.
 - **[uv](https://docs.astral.sh/uv/)** for dependencies and the lockfile.
 - **Node.js 18+** — only for the official Filesystem server, launched via `npx`.
@@ -335,6 +348,35 @@ uv run adoptamatch-chatbot --no-protocol-log
 language model: it exists so the MCP plumbing — discovery, routing, logging, the
 tool loop, clean shutdown — can be demonstrated and tested with no key and no
 cost. Anything it says is labelled `Offline mode:`.
+
+## Web interface
+
+A browser chat, as an alternative to the terminal:
+
+```bash
+uv run adoptamatch-chatbot-web                 # http://127.0.0.1:8765
+uv run adoptamatch-chatbot-web --offline
+uv run adoptamatch-chatbot-web --host 0.0.0.0 --port 8080
+```
+
+This is a second *presentation layer*, not a second host: `adoptamatch_chatbot.web`
+drives the exact same `ChatApp`, `MCPManager` and `LLMProvider` the terminal uses.
+`web/presenter.py` implements the same six methods `ChatApp.handle_message` calls
+on `Presenter` — `thinking`, `tool_call`, `tool_result`, `assistant`, `warn`,
+`error` — except each one pushes a JSON event onto a queue instead of printing,
+and `web/server.py` (Starlette + a WebSocket, `static/index.html` with no
+framework and no CDN dependency) forwards that queue to the browser live, so a
+tool call and its result appear as they happen rather than after the whole turn
+finishes. Nothing about routing, logging or the conversation loop changes based
+on which presentation layer is attached — that is exactly the boundary
+`llm/base.py`'s `LLMProvider` Protocol demonstrates one layer down.
+
+Each browser tab that opens the WebSocket gets its own MCP subprocesses and its
+own session log, the same isolation a second terminal window would get. `/clear`
+skips its terminal confirmation prompt (there is no stdin to read a `y/n` from);
+the browser asks with a native `confirm()` first and only sends `/clear` once
+agreed. `--host 0.0.0.0` exposes it beyond localhost — keep the default
+`127.0.0.1` unless you specifically need that.
 
 ## Console commands
 
@@ -494,6 +536,13 @@ uv run adoptamatch-chatbot --offline --no-color  # semantics survive without col
 uv run adoptamatch-chatbot --offline --ascii     # ASCII glyph set
 ```
 
+**The browser front end (see [Web interface](#web-interface) above) follows the
+same rules in different clothes**, not a different design: tool activity renders
+as small, collapsible cards rather than dimmed text, but it is still secondary
+to the answer; success and failure are still a colour *and* a checkmark/cross,
+never colour alone; a session survives a provider error the same way in both —
+reported once, without ending the conversation.
+
 ## Remote server and deployment
 
 `remote_server/` is a self-contained project: **pet-care-mcp**, a small MCP server
@@ -572,6 +621,10 @@ adoptamatch-chatbot/
 │   │   ├── anthropic_provider.py
 │   │   ├── gemini_provider.py  free alternative (LLM_PROVIDER=gemini)
 │   │   └── scripted.py         test double and --offline router
+│   ├── web/                 optional browser front end (adoptamatch-chatbot-web)
+│   │   ├── presenter.py        Presenter's six ChatApp-facing methods, as JSON events
+│   │   ├── server.py           Starlette app + WebSocket protocol
+│   │   └── static/index.html   the page itself: no framework, no CDN
 │   ├── mcp_wire/            hand-written MCP client, no SDK
 │   │   ├── messages.py      JSON-RPC framing and classification
 │   │   ├── transports.py    stdio (pipes) and Streamable HTTP (TCP)
