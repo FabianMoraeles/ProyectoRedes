@@ -11,7 +11,8 @@ git -C demo_workspace/demo-repo log --oneline   # note the starting point
 uv run adoptamatch-chatbot
 ```
 
-Show the start-up table: six configured servers, four connected, the transport and
+Show the start-up table: six configured servers, connected (`pet_care_remote`
+needs the local remote server running first — see step 5), the transport and
 negotiated protocol version of each, and the tool count.
 
 ---
@@ -151,7 +152,36 @@ Point out:
 
 ---
 
-## 6 — Closing (30 s)
+## 6 — Classmates' servers (2 min)
+
+Two independently-written servers, neither using this project's code:
+
+```
+Agrega una tarea academica: examen de Redes, curso CC3067, tipo examen, fecha limite 2026-09-15, 4 horas estimadas, dificultad alta, importancia alta. Luego dime que tareas tengo pendientes.
+```
+
+Point out: routed to `academic_planner` (Camila Ramirez's server, official SDK,
+low-level `Server` API) — two chained tool calls in one turn,
+`add_academic_task` then `get_upcoming_tasks`.
+
+```
+Index the Spring Boot repository at <absolute path to demo_workspace/spring-demo>, then give me the architecture overview, check for dependency cycles, and validate the architecture rules.
+```
+
+Point out: routed to `spring_architecture` (Diego Lopez's server, official SDK,
+**FastMCP** decorator API — a third implementation style, next to our hand-written
+one and Camila's low-level one) — four chained tool calls in one turn. The fixture
+repo has a deliberate `OrderService ↔ PricingService` cycle and a
+`Controller → Repository` layer violation; both should appear in the answer.
+
+Point out, for both: none of their 15 combined tools collide with our 33, and the
+protocol version negotiated is `2025-06-18` for every server regardless of who
+wrote it or which SDK layer they used — the interoperability the assignment asks
+for, demonstrated rather than assumed.
+
+---
+
+## 7 — Closing (30 s)
 
 ```
 /logs

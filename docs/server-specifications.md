@@ -157,25 +157,32 @@ machines. The real, local `config/servers.toml` (git-ignored) has
 
 | | Server 1 | Server 2 |
 | --- | --- | --- |
-| Author | Camila Ramirez (`CamiR24`) | |
-| Repository | <https://github.com/CamiR24/academic-planner-mcp> (public) | |
-| Purpose | Academic task management: priority scoring, workload analysis, slack-time-aware study scheduling, study-technique recommendation, project decomposition | |
-| Transport | stdio | |
-| Launch command | `<venv>/Scripts/python.exe -m src.server`, cwd = the repository root. Their README also documents a `pip`/`venv` install (not `uv`); this project's `uv venv` + `uv pip install -r requirements.txt` was used instead to keep the classmate's virtual environment isolated from this host's own dependencies. | |
-| Dependencies | `mcp==1.29.1` only (their `requirements.txt`); official MCP SDK, low-level `Server` API | |
-| Tools exposed | `add_academic_task`, `get_upcoming_tasks`, `update_task_status`, `calculate_task_priority`, `analyze_workload`, `generate_study_schedule`, `recommend_study_technique`, `decompose_project` (8) | |
-| Name collisions with ours | None, against all 33 tools from `adoptamatch`, `filesystem`, `git` and `pet_care_remote` | |
-| Risks noticed while reading the code | Self-contained: local SQLite (`academic.db`, created in its own cwd) is its only I/O, no network calls, no shell execution, no credentials required. Safe to run with default privileges. | |
-| Scenario demonstrated | One turn, two chained tool calls: `add_academic_task` (register "Examen de Redes", CC3067, due 2026-09-15) then `get_upcoming_tasks`, both through Gemini (`LLM_PROVIDER=gemini`) end to end | |
-| Date integrated | 2026-09-06 | |
+| Author | Camila Ramirez (`CamiR24`) | Diego Lopez (`jcdiegolopez`) |
+| Repository | <https://github.com/CamiR24/academic-planner-mcp> (public) | <https://github.com/jcdiegolopez/spring-architecture-analyzer-mcp> (public) |
+| Purpose | Academic task management: priority scoring, workload analysis, slack-time-aware study scheduling, study-technique recommendation, project decomposition | Static analysis of Java Spring Boot (Maven) repositories: Tree-sitter AST parsing into a SQLite dependency graph, layer-violation checks, cycle detection, blast-radius impact, refactoring-risk ranking, dependency-graph PNGs |
+| Transport | stdio | stdio |
+| Launch command | `<venv>/Scripts/python.exe -m src.server`, cwd = the repository root. Their README also documents a `pip`/`venv` install (not `uv`); this project's `uv venv` + `uv pip install -r requirements.txt` was used instead to keep the classmate's virtual environment isolated from this host's own dependencies. | `<venv>/Scripts/python.exe server.py`, cwd = the repository root. Same `uv venv` + `uv pip install` treatment. |
+| Dependencies | `mcp==1.29.1` only (their `requirements.txt`); official MCP SDK, low-level `Server` API | `mcp`, `tree-sitter`, `tree-sitter-java`, `networkx`, `matplotlib`; official MCP SDK via the high-level **FastMCP** decorator API — a third code path exercised, alongside our hand-written implementation and Camila's low-level `Server` |
+| Tools exposed | `add_academic_task`, `get_upcoming_tasks`, `update_task_status`, `calculate_task_priority`, `analyze_workload`, `generate_study_schedule`, `recommend_study_technique`, `decompose_project` (8) | `index_repository`, `get_architecture_overview`, `get_change_impact`, `find_dependency_cycles`, `validate_architecture_rules`, `rank_refactoring_targets`, `generate_dependency_graph` (7) |
+| Name collisions with ours | None, against the other 33 tools | None, against the other 39 tools |
+| Risks noticed while reading the code | Self-contained: local SQLite (`academic.db`, created in its own cwd) is its only I/O, no network calls, no shell execution, no credentials required. Safe to run with default privileges. | Reads only the Java source tree it is pointed at (no writes there) plus its own `cache/` (SQLite) and `outputs/` (PNGs); no network calls, no shell execution, no credentials. `generate_dependency_graph` writes a file to disk — worth knowing before pointing it at a shared directory. |
+| Scenario demonstrated | One turn, two chained tool calls: `add_academic_task` (register "Examen de Redes", CC3067, due 2026-09-15) then `get_upcoming_tasks`, both through Gemini (`LLM_PROVIDER=gemini`) end to end | One turn, four chained tool calls — `index_repository`, `get_architecture_overview`, `find_dependency_cycles`, `validate_architecture_rules` — against a small synthetic Maven project built for this test (`demo_workspace/spring-demo`, 5 classes) with a deliberate `Controller → Repository` layer violation and an `OrderService ↔ PricingService` cycle. Both were correctly detected and reported, through Gemini end to end. |
+| Date integrated | 2026-09-06 | 2026-09-06 |
 
 **Confirms a provider fix, not a server-specific one.** Gemini's thinking models
 attach an opaque `thought_signature` to a `function_call` part that must be
 replayed unchanged on the next request; that bug was first found and fixed
-against `adoptamatch`'s `recommend_animals` (see `llm/gemini_provider.py`). This
-integration is the second, independently-written server the fix was verified
-against — evidence the fix is in `GeminiProvider` where it belongs, not a
-one-off patched around a single server's quirks.
+against `adoptamatch`'s `recommend_animals` (see `llm/gemini_provider.py`). Both
+classmate integrations are additional, independently-written servers the fix was
+verified against — evidence it lives in `GeminiProvider` where it belongs, not
+patched around one server's quirks.
+
+**A model-lifecycle gotcha found while testing server 2.** `gemini-2.5-flash`,
+pinned explicitly, came back `404 ... no longer available to new users` two days
+after it was last used successfully in this project. `gemini-flash-latest` (this
+project's default, see `.env.example`) is Google's own rolling alias for the
+current free-tier Flash model and was unaffected — a concrete reason to prefer
+the alias over pinning a dated model id for a long-running demo project.
 
 ---
 
@@ -187,6 +194,7 @@ Run this to regenerate the current list:
 uv run adoptamatch-chatbot --offline --check
 ```
 
-At the time of writing, with all five available servers connected: **41 tools**
-across `adoptamatch` (5), `filesystem` (14), `git` (12), `pet_care_remote` (2) and
-`academic_planner` (8), with no name collisions — so no tool needed qualifying.
+At the time of writing, with all six available servers connected: **48 tools**
+across `adoptamatch` (5), `filesystem` (14), `git` (12), `pet_care_remote` (2),
+`academic_planner` (8) and `spring_architecture` (7), with no name collisions —
+so no tool needed qualifying.

@@ -6,12 +6,11 @@ disabled until they are real. The example file stays generic on purpose — each
 student's real, filled-in entries live only in their own git-ignored
 `config/servers.toml`.
 
-**Status: 1 of 2 integrated.** `classmate_server_1` is Camila Ramirez's
-`academic-planner-mcp`, connected and demonstrated — see
+**Status: 2 of 2 integrated.** `classmate_server_1` is Camila Ramirez's
+`academic-planner-mcp`; `classmate_server_2` is Diego Lopez's
+`spring-architecture-analyzer-mcp` — see
 [`server-specifications.md` §5](server-specifications.md#5-classmate_server_1-and-classmate_server_2)
-for the tools, the risk review and the scenario run. `classmate_server_2` is still
-open. **The requirement is not met until both are connected and demonstrated** —
-do not mark it done before then.
+for the tools, the risk review and the scenario run for each. Requirement met.
 
 ## Before you run anything
 
