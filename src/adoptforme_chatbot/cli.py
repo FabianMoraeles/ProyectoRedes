@@ -1,4 +1,4 @@
-"""Command-line entry point: ``adoptamatch-chatbot``.
+"""Command-line entry point: ``adoptforme-chatbot``.
 
 Start-up order matters and is deliberate:
 
@@ -23,19 +23,19 @@ import logging
 import sys
 from pathlib import Path
 
-from adoptamatch_chatbot import __version__
-from adoptamatch_chatbot.app import ChatApp
-from adoptamatch_chatbot.config import AppConfig, ConfigError, load_config
-from adoptamatch_chatbot.llm.base import LLMError, LLMProvider
-from adoptamatch_chatbot.llm.scripted import ScriptedProvider, offline_responder
-from adoptamatch_chatbot.mcp_host.logger import InteractionLogger
-from adoptamatch_chatbot.mcp_host.manager import MCPManager
-from adoptamatch_chatbot.presentation import Presenter
+from adoptforme_chatbot import __version__
+from adoptforme_chatbot.app import ChatApp
+from adoptforme_chatbot.config import AppConfig, ConfigError, load_config
+from adoptforme_chatbot.llm.base import LLMError, LLMProvider
+from adoptforme_chatbot.llm.scripted import ScriptedProvider, offline_responder
+from adoptforme_chatbot.mcp_host.logger import InteractionLogger
+from adoptforme_chatbot.mcp_host.manager import MCPManager
+from adoptforme_chatbot.presentation import Presenter
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="adoptamatch-chatbot",
+        prog="adoptforme-chatbot",
         description="Console chatbot that acts as an MCP host over several MCP servers.",
     )
     parser.add_argument("--env-file", type=Path, default=Path(".env"), help="Path to the .env file.")
@@ -78,7 +78,7 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Validate the configuration, connect, list the tools and exit.",
     )
-    parser.add_argument("--version", action="version", version=f"adoptamatch-chatbot {__version__}")
+    parser.add_argument("--version", action="version", version=f"adoptforme-chatbot {__version__}")
     return parser
 
 
@@ -87,10 +87,10 @@ def build_provider(config: AppConfig, offline: bool) -> LLMProvider:
     if offline:
         return ScriptedProvider(responder=offline_responder, model="offline-router")
     if config.provider == "gemini":
-        from adoptamatch_chatbot.llm.gemini_provider import GeminiProvider
+        from adoptforme_chatbot.llm.gemini_provider import GeminiProvider
 
         return GeminiProvider(api_key=config.gemini_api_key, model=config.model)
-    from adoptamatch_chatbot.llm.anthropic_provider import AnthropicProvider
+    from adoptforme_chatbot.llm.anthropic_provider import AnthropicProvider
 
     return AnthropicProvider(api_key=config.anthropic_api_key, model=config.model)
 

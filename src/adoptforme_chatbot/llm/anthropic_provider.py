@@ -1,12 +1,12 @@
-"""Anthropic implementation of :class:`~adoptamatch_chatbot.llm.base.LLMProvider`.
+"""Anthropic implementation of :class:`~adoptforme_chatbot.llm.base.LLMProvider`.
 
 Uses the official ``anthropic`` SDK (1.x) and the Messages API. The agentic loop
-itself lives in :mod:`adoptamatch_chatbot.app`: this class is a single-turn
+itself lives in :mod:`adoptforme_chatbot.app`: this class is a single-turn
 adapter, because the host -- not the SDK -- must own tool routing so that every
 call goes through the MCP manager and the interaction log.
 
 The model id is never hard-coded in application logic; it arrives from
-``ANTHROPIC_MODEL`` via :class:`~adoptamatch_chatbot.config.AppConfig`.
+``ANTHROPIC_MODEL`` via :class:`~adoptforme_chatbot.config.AppConfig`.
 """
 
 from __future__ import annotations
@@ -15,7 +15,7 @@ from typing import Any
 
 import anthropic
 
-from adoptamatch_chatbot.llm.base import LLMError, LLMResponse, ToolCall, ToolSpec
+from adoptforme_chatbot.llm.base import LLMError, LLMResponse, ToolCall, ToolSpec
 
 #: Generous but bounded: a recommendation with six explained candidates is long.
 MAX_TOKENS = 8000

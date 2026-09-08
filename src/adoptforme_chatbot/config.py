@@ -22,7 +22,7 @@ from typing import Any
 
 from dotenv import load_dotenv
 
-from adoptamatch_chatbot.mcp_host.models import ServerConfig
+from adoptforme_chatbot.mcp_host.models import ServerConfig
 
 if sys.version_info >= (3, 11):
     import tomllib
@@ -67,10 +67,10 @@ def load_server_configs(path: Path) -> list[ServerConfig]:
     Expected shape::
 
         [[servers]]
-        name = "adoptamatch"
+        name = "adoptforme"
         transport = "stdio"
         command = "uv"
-        args = ["--directory", "../adoptamatch-mcp", "run", "adoptamatch-mcp"]
+        args = ["--directory", "../adoptforme-mcp", "run", "adoptforme-mcp"]
     """
     if not path.is_file():
         raise ConfigError(

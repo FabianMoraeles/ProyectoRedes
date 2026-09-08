@@ -20,7 +20,7 @@ import re
 from collections.abc import Callable
 from typing import Any
 
-from adoptamatch_chatbot.llm.base import LLMResponse, ToolCall, ToolSpec
+from adoptforme_chatbot.llm.base import LLMResponse, ToolCall, ToolSpec
 
 Responder = Callable[[str, list[dict[str, Any]], list[ToolSpec]], LLMResponse]
 

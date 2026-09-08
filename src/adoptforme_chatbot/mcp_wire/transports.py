@@ -3,7 +3,7 @@
 A transport's whole job is to carry one JSON-RPC frame to the peer and bring the
 matching reply back. Everything above it -- the handshake, ``tools/list``,
 ``tools/call`` -- is transport-agnostic and lives in
-:mod:`adoptamatch_chatbot.mcp_wire.session`.
+:mod:`adoptforme_chatbot.mcp_wire.session`.
 
 * :class:`StdioTransport` spawns the server as a subprocess and writes
   newline-delimited JSON to its stdin, reading replies from its stdout. **No
@@ -30,7 +30,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any, TextIO
 
-from adoptamatch_chatbot.mcp_wire.messages import ProtocolError
+from adoptforme_chatbot.mcp_wire.messages import ProtocolError
 
 #: Called as ``on_frame(direction, message)`` with ``direction`` in
 #: ``{"out", "in"}``. Never allowed to raise into the transport.

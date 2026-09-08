@@ -1,13 +1,13 @@
-"""Google Gemini implementation of :class:`~adoptamatch_chatbot.llm.base.LLMProvider`.
+"""Google Gemini implementation of :class:`~adoptforme_chatbot.llm.base.LLMProvider`.
 
 The free alternative to Anthropic: the assignment only asks for "connection to an
 LLM at the API level", not a specific vendor, and a fresh Gemini API key from
 https://aistudio.google.com/apikey carries a genuine free tier with tool calling
 -- unlike OpenAI's API, which has no free tier at all.
 
-Like :class:`~adoptamatch_chatbot.llm.anthropic_provider.AnthropicProvider`, this
+Like :class:`~adoptforme_chatbot.llm.anthropic_provider.AnthropicProvider`, this
 is a single-turn adapter: the agentic loop and tool routing stay in
-:mod:`adoptamatch_chatbot.app`, so the model never executes a tool by itself.
+:mod:`adoptforme_chatbot.app`, so the model never executes a tool by itself.
 Automatic function calling is explicitly disabled for that reason.
 
 Gemini has no equivalent of Anthropic's per-call ``tool_use_id``: a
@@ -36,7 +36,7 @@ from typing import Any
 from google import genai
 from google.genai import errors, types
 
-from adoptamatch_chatbot.llm.base import LLMError, LLMResponse, ToolCall, ToolSpec
+from adoptforme_chatbot.llm.base import LLMError, LLMResponse, ToolCall, ToolSpec
 
 #: Mirrors the Anthropic provider's budget; a long, multi-candidate explanation
 #: needs headroom.

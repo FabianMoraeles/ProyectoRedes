@@ -1,6 +1,6 @@
 """The MCP side of the host: connect, discover, route, call, log and shut down.
 
-The protocol itself is implemented in :mod:`adoptamatch_chatbot.mcp_wire`,
+The protocol itself is implemented in :mod:`adoptforme_chatbot.mcp_wire`,
 directly over JSON-RPC 2.0. **No MCP SDK is used.** This module is the layer that
 turns a list of configured servers into one tool catalogue the model can use.
 
@@ -36,15 +36,15 @@ from collections.abc import Iterable
 from pathlib import Path
 from typing import Any, TextIO
 
-from adoptamatch_chatbot.mcp_host.logger import InteractionLogger, new_request_id
-from adoptamatch_chatbot.mcp_host.models import (
+from adoptforme_chatbot.mcp_host.logger import InteractionLogger, new_request_id
+from adoptforme_chatbot.mcp_host.models import (
     QUALIFIER,
     ServerConfig,
     ServerStatus,
     ToolCallOutcome,
     ToolRef,
 )
-from adoptamatch_chatbot.mcp_wire import (
+from adoptforme_chatbot.mcp_wire import (
     ClientSession,
     ProtocolError,
     StdioTransport,

@@ -1,14 +1,14 @@
 """Browser front end: one Starlette app, one WebSocket protocol.
 
 Start-up loads configuration once, the same way ``cli.py`` does. Each browser
-tab that opens the WebSocket gets its own :class:`~adoptamatch_chatbot.app.ChatApp`,
-:class:`~adoptamatch_chatbot.mcp_host.manager.MCPManager` and
-:class:`~adoptamatch_chatbot.mcp_host.logger.InteractionLogger` -- exactly the
-isolation a second terminal window would get from ``uv run adoptamatch-chatbot``,
+tab that opens the WebSocket gets its own :class:`~adoptforme_chatbot.app.ChatApp`,
+:class:`~adoptforme_chatbot.mcp_host.manager.MCPManager` and
+:class:`~adoptforme_chatbot.mcp_host.logger.InteractionLogger` -- exactly the
+isolation a second terminal window would get from ``uv run adoptforme-chatbot``,
 including its own MCP subprocesses and its own session log.
 
 One task per connection drains a queue of presenter events (populated by
-:class:`~adoptamatch_chatbot.web.presenter.WebPresenter` as
+:class:`~adoptforme_chatbot.web.presenter.WebPresenter` as
 ``ChatApp.handle_message`` runs) and forwards them to the socket as they occur,
 so a tool call and its result reach the browser live rather than batched at the
 end of the turn.
@@ -55,13 +55,13 @@ from starlette.responses import FileResponse
 from starlette.routing import Route, WebSocketRoute
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
-from adoptamatch_chatbot import __version__
-from adoptamatch_chatbot.app import COMMANDS, ChatApp
-from adoptamatch_chatbot.cli import build_provider
-from adoptamatch_chatbot.config import AppConfig, ConfigError, load_config
-from adoptamatch_chatbot.mcp_host.logger import InteractionLogger
-from adoptamatch_chatbot.mcp_host.manager import MCPManager
-from adoptamatch_chatbot.web.presenter import Event, WebPresenter
+from adoptforme_chatbot import __version__
+from adoptforme_chatbot.app import COMMANDS, ChatApp
+from adoptforme_chatbot.cli import build_provider
+from adoptforme_chatbot.config import AppConfig, ConfigError, load_config
+from adoptforme_chatbot.mcp_host.logger import InteractionLogger
+from adoptforme_chatbot.mcp_host.manager import MCPManager
+from adoptforme_chatbot.web.presenter import Event, WebPresenter
 
 STATIC_DIR = Path(__file__).parent / "static"
 
@@ -241,8 +241,8 @@ def build_app(config: AppConfig, offline: bool) -> Starlette:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="adoptamatch-chatbot-web",
-        description="Browser front end for the AdoptaMatch MCP host, over a WebSocket.",
+        prog="adoptforme-chatbot-web",
+        description="Browser front end for the AdoptForMe MCP host, over a WebSocket.",
     )
     parser.add_argument("--env-file", type=Path, default=Path(".env"), help="Path to the .env file.")
     parser.add_argument("--servers", type=Path, default=None, help="Path to servers.toml.")
@@ -252,7 +252,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--host", default="127.0.0.1", help="Interface to bind. Keep this local by default.")
     parser.add_argument("--port", type=int, default=8765)
-    parser.add_argument("--version", action="version", version=f"adoptamatch-chatbot-web {__version__}")
+    parser.add_argument("--version", action="version", version=f"adoptforme-chatbot-web {__version__}")
     return parser
 
 
@@ -272,7 +272,7 @@ def main() -> None:
         config.model = args.model
 
     app = build_app(config, args.offline)
-    print(f"AdoptaMatch web chat: http://{args.host}:{args.port}/")
+    print(f"AdoptForMe web chat: http://{args.host}:{args.port}/")
     uvicorn.run(app, host=args.host, port=args.port, log_level="warning")
 
 

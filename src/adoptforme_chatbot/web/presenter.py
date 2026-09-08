@@ -1,7 +1,7 @@
 """A ``Presenter`` that emits JSON events instead of printing to a terminal.
 
-:class:`~adoptamatch_chatbot.app.ChatApp` was written against
-:class:`~adoptamatch_chatbot.presentation.Presenter` and calls exactly six of its
+:class:`~adoptforme_chatbot.app.ChatApp` was written against
+:class:`~adoptforme_chatbot.presentation.Presenter` and calls exactly six of its
 methods from ``handle_message`` -- ``thinking``, ``error``, ``assistant``, ``warn``,
 ``tool_call`` and ``tool_result`` -- as plain (unawaited) calls, live, as the turn
 progresses. :class:`WebPresenter` implements that same surface, so ``handle_message``
@@ -9,7 +9,7 @@ runs completely unmodified; only where the output goes changes.
 
 Because those calls are synchronous but the browser is reached over a WebSocket,
 each method pushes an event onto an ``asyncio.Queue`` instead of sending directly.
-A separate task (in :mod:`adoptamatch_chatbot.web.server`) drains that queue and
+A separate task (in :mod:`adoptforme_chatbot.web.server`) drains that queue and
 writes to the socket, running concurrently with ``handle_message`` on the same
 event loop -- so a tool call and its result reach the browser as they happen, not
 batched at the end of the turn.
@@ -21,7 +21,7 @@ import contextlib
 from asyncio import Queue
 from typing import Any
 
-from adoptamatch_chatbot.mcp_host.models import ToolCallOutcome
+from adoptforme_chatbot.mcp_host.models import ToolCallOutcome
 
 #: One JSON-serialisable dict per UI event; see docs/architecture.md for the shape
 #: of each ``type``.

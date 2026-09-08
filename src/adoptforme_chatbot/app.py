@@ -3,7 +3,7 @@
 One turn, end to end:
 
 1. read the user's line;
-2. append it to the session history (:mod:`adoptamatch_chatbot.conversation`);
+2. append it to the session history (:mod:`adoptforme_chatbot.conversation`);
 3. send system prompt + full history + every discovered tool schema to the LLM;
 4. if the model asked for tools, resolve each one to its owning MCP server;
 5. execute them through the MCP manager, which logs request, response, error and
@@ -23,14 +23,14 @@ import asyncio
 import time
 from typing import Any
 
-from adoptamatch_chatbot.conversation import Conversation
-from adoptamatch_chatbot.llm.base import LLMError, LLMProvider, ToolSpec
-from adoptamatch_chatbot.mcp_host.logger import InteractionLogger
-from adoptamatch_chatbot.mcp_host.manager import MCPManager, UnknownToolError
-from adoptamatch_chatbot.presentation import Presenter
+from adoptforme_chatbot.conversation import Conversation
+from adoptforme_chatbot.llm.base import LLMError, LLMProvider, ToolSpec
+from adoptforme_chatbot.mcp_host.logger import InteractionLogger
+from adoptforme_chatbot.mcp_host.manager import MCPManager, UnknownToolError
+from adoptforme_chatbot.presentation import Presenter
 
 SYSTEM_PROMPT = """\
-You are the AdoptaMatch assistant, a console agent for an animal shelter. You are \
+You are the AdoptForMe assistant, a console agent for an animal shelter. You are \
 also a general-purpose assistant: answer ordinary questions directly, without \
 tools.
 

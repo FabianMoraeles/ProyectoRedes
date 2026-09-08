@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>AdoptaMatch</title>
+<title>AdoptForMe</title>
 <style>
   :root {
     --bg: #0b0e14;
@@ -523,7 +523,7 @@
     sendBtn.disabled = true;
     addSystemLine("error", "Disconnected. Reload the page to start a new session.");
   };
-  ws.onerror = () => addSystemLine("error", "WebSocket error. Check the terminal running adoptamatch-chatbot-web.");
+  ws.onerror = () => addSystemLine("error", "WebSocket error. Check the terminal running adoptforme-chatbot-web.");
 
   ws.onmessage = (event) => {
     const ev = JSON.parse(event.data);

@@ -14,7 +14,7 @@ Two files are written per session, both under ``logs/``:
   so nothing is hidden behind an SDK.
 * ``session-<id>.<server>.stderr.log`` -- whatever each stdio subprocess wrote to
   its standard error. Written by
-  :class:`~adoptamatch_chatbot.mcp_host.manager.MCPManager`, not by this class,
+  :class:`~adoptforme_chatbot.mcp_host.manager.MCPManager`, not by this class,
   but it belongs to the same session and is named to match.
 
 Together these are the plaintext side of an exchange that Wireshark can only see
@@ -33,7 +33,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Literal
 
-from adoptamatch_chatbot.mcp_wire.messages import LIFECYCLE_METHODS, classify, is_lifecycle
+from adoptforme_chatbot.mcp_wire.messages import LIFECYCLE_METHODS, classify, is_lifecycle
 
 Direction = Literal["request", "response", "error", "notification", "lifecycle"]
 

@@ -25,7 +25,7 @@ import logging
 from dataclasses import dataclass, field
 from typing import Any
 
-from adoptamatch_chatbot.mcp_wire.messages import (
+from adoptforme_chatbot.mcp_wire.messages import (
     IdAllocator,
     ProtocolError,
     classify,
@@ -33,7 +33,7 @@ from adoptamatch_chatbot.mcp_wire.messages import (
     raise_for_error,
     request,
 )
-from adoptamatch_chatbot.mcp_wire.transports import Transport, TransportError
+from adoptforme_chatbot.mcp_wire.transports import Transport, TransportError
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +41,7 @@ logger = logging.getLogger(__name__)
 SUPPORTED_PROTOCOL_VERSIONS = ("2025-06-18", "2025-03-26")
 PREFERRED_PROTOCOL_VERSION = SUPPORTED_PROTOCOL_VERSIONS[0]
 
-CLIENT_NAME = "adoptamatch-chatbot"
+CLIENT_NAME = "adoptforme-chatbot"
 
 
 @dataclass
@@ -218,6 +218,6 @@ class ClientSession:
 
 
 def _client_version() -> str:
-    from adoptamatch_chatbot import __version__
+    from adoptforme_chatbot import __version__
 
     return __version__

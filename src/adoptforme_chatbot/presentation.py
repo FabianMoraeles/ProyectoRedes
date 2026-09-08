@@ -1,7 +1,7 @@
 """Terminal user interface.
 
 All console output goes through this module, so the conversation loop in
-:mod:`adoptamatch_chatbot.app` stays free of formatting and remains testable
+:mod:`adoptforme_chatbot.app` stays free of formatting and remains testable
 without capturing ANSI codes.
 
 The design rationale -- colour choices, hierarchy, feedback, accessibility -- is
@@ -49,7 +49,7 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
-from adoptamatch_chatbot.mcp_host.models import ServerStatus, ToolCallOutcome, ToolRef
+from adoptforme_chatbot.mcp_host.models import ServerStatus, ToolCallOutcome, ToolRef
 
 # --------------------------------------------------------------------- design tokens
 
@@ -180,7 +180,7 @@ class Presenter:
 
     def banner(self, model: str, provider: str, session_id: str, log_path: str) -> None:
         """The first screen: what this is, what it is connected to, what to type."""
-        title = Text("AdoptaMatch", style=STYLE["brand"])
+        title = Text("AdoptForMe", style=STYLE["brand"])
         title.append("  console MCP host", style=STYLE["meta"])
 
         facts = Table.grid(padding=(0, 2))
