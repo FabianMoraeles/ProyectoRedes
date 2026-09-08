@@ -10,9 +10,9 @@ from pathlib import Path
 
 import pytest
 
-from adoptamatch_chatbot.mcp_host.logger import InteractionLogger
-from adoptamatch_chatbot.mcp_host.manager import MCPManager, UnknownToolError
-from adoptamatch_chatbot.mcp_host.models import ServerConfig
+from adoptforme_chatbot.mcp_host.logger import InteractionLogger
+from adoptforme_chatbot.mcp_host.manager import MCPManager, UnknownToolError
+from adoptforme_chatbot.mcp_host.models import ServerConfig
 from tests.conftest import fixture_server
 
 # ------------------------------------------------------------------- discovery

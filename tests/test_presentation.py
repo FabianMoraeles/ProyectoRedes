@@ -13,8 +13,8 @@ import io
 import pytest
 from rich.console import Console
 
-from adoptamatch_chatbot.mcp_host.models import ServerConfig, ServerStatus, ToolCallOutcome, ToolRef
-from adoptamatch_chatbot.presentation import GLYPHS_ASCII, GLYPHS_UNICODE, Presenter
+from adoptforme_chatbot.mcp_host.models import ServerConfig, ServerStatus, ToolCallOutcome, ToolRef
+from adoptforme_chatbot.presentation import GLYPHS_ASCII, GLYPHS_UNICODE, Presenter
 
 
 def build(**kwargs) -> tuple[Presenter, io.StringIO]:
@@ -158,9 +158,9 @@ class TestProgressiveDisclosure:
 class TestFeedback:
     def test_a_tool_call_is_announced_with_its_server(self) -> None:
         presenter, buffer = build(no_color=True)
-        presenter.tool_call("recommend_animals", "adoptamatch", {"limit": 3})
+        presenter.tool_call("recommend_animals", "adoptforme", {"limit": 3})
         output = buffer.getvalue()
-        assert "adoptamatch" in output and "recommend_animals" in output
+        assert "adoptforme" in output and "recommend_animals" in output
         assert '"limit": 3' in output
 
     def test_a_result_reports_duration_and_correlation_id(self) -> None:

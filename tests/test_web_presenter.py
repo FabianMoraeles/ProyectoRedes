@@ -12,8 +12,8 @@ import asyncio
 
 import pytest
 
-from adoptamatch_chatbot.mcp_host.models import ToolCallOutcome
-from adoptamatch_chatbot.web.presenter import WebPresenter
+from adoptforme_chatbot.mcp_host.models import ToolCallOutcome
+from adoptforme_chatbot.web.presenter import WebPresenter
 
 
 def drain(queue: asyncio.Queue) -> list[dict]:
@@ -51,12 +51,12 @@ class TestAssistantText:
 class TestToolEvents:
     def test_a_tool_call_carries_its_server_name_and_arguments(self) -> None:
         queue: asyncio.Queue = asyncio.Queue()
-        WebPresenter(queue).tool_call("recommend_animals", "adoptamatch", {"limit": 3})
+        WebPresenter(queue).tool_call("recommend_animals", "adoptforme", {"limit": 3})
         assert drain(queue) == [
             {
                 "type": "tool_call",
                 "name": "recommend_animals",
-                "server": "adoptamatch",
+                "server": "adoptforme",
                 "arguments": {"limit": 3},
             }
         ]
@@ -65,7 +65,7 @@ class TestToolEvents:
         queue: asyncio.Queue = asyncio.Queue()
         outcome = ToolCallOutcome(
             tool="recommend_animals",
-            server="adoptamatch",
+            server="adoptforme",
             ok=True,
             text="fine",
             elapsed_ms=42,
@@ -76,7 +76,7 @@ class TestToolEvents:
             {
                 "type": "tool_result",
                 "tool": "recommend_animals",
-                "server": "adoptamatch",
+                "server": "adoptforme",
                 "ok": True,
                 "text": "fine",
                 "elapsed_ms": 42,

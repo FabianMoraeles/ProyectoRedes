@@ -14,8 +14,8 @@ from types import SimpleNamespace
 import pytest
 from google.genai import errors
 
-from adoptamatch_chatbot.llm.base import LLMError, ToolSpec
-from adoptamatch_chatbot.llm.gemini_provider import GeminiProvider
+from adoptforme_chatbot.llm.base import LLMError, ToolSpec
+from adoptforme_chatbot.llm.gemini_provider import GeminiProvider
 
 TEXT_ONLY_RESPONSE = SimpleNamespace(
     candidates=[
@@ -244,7 +244,7 @@ class TestRetryOn503:
         async def fake_sleep(seconds: float) -> None:
             recorded.append(seconds)
 
-        monkeypatch.setattr("adoptamatch_chatbot.llm.gemini_provider.asyncio.sleep", fake_sleep)
+        monkeypatch.setattr("adoptforme_chatbot.llm.gemini_provider.asyncio.sleep", fake_sleep)
         return recorded
 
     @pytest.mark.asyncio

@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from adoptamatch_chatbot.mcp_host.logger import (
+from adoptforme_chatbot.mcp_host.logger import (
     MAX_LOGGED_CHARS,
     REDACTED,
     InteractionLogger,
@@ -33,7 +33,7 @@ def read(path: Path) -> list[dict]:
 def test_every_event_carries_the_required_fields(tmp_path: Path) -> None:
     log = InteractionLogger(tmp_path)
     log.log(
-        server="adoptamatch",
+        server="adoptforme",
         transport="stdio",
         direction="request",
         method="tools/call",

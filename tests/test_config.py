@@ -10,14 +10,14 @@ from pathlib import Path
 
 import pytest
 
-from adoptamatch_chatbot.config import ConfigError, load_config, load_server_configs
+from adoptforme_chatbot.config import ConfigError, load_config, load_server_configs
 
 VALID = """
 [[servers]]
-name = "adoptamatch"
+name = "adoptforme"
 transport = "stdio"
 command = "uv"
-args = ["run", "adoptamatch-mcp"]
+args = ["run", "adoptforme-mcp"]
 
 [[servers]]
 name = "remote"
@@ -38,7 +38,7 @@ def write(tmp_path: Path, body: str) -> Path:
 
 def test_valid_file_loads_both_transports(tmp_path: Path) -> None:
     configs = load_server_configs(write(tmp_path, VALID))
-    assert [c.name for c in configs] == ["adoptamatch", "remote"]
+    assert [c.name for c in configs] == ["adoptforme", "remote"]
     assert configs[0].transport == "stdio" and configs[0].enabled is True
     assert configs[1].transport == "streamable-http" and configs[1].enabled is False
     assert configs[0].timeout_seconds == 60.0  # documented default
@@ -114,7 +114,7 @@ def test_shipped_example_file_is_valid() -> None:
     example = Path(__file__).resolve().parents[1] / "config" / "servers.example.toml"
     configs = load_server_configs(example)
     names = {config.name for config in configs}
-    assert {"adoptamatch", "filesystem", "git", "pet_care_remote"} <= names
+    assert {"adoptforme", "filesystem", "git", "pet_care_remote"} <= names
     assert {"classmate_server_1", "classmate_server_2"} <= names
     for config in configs:
         if config.name.startswith("classmate"):

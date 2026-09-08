@@ -26,14 +26,14 @@ from pathlib import Path
 
 import pytest
 
-from adoptamatch_chatbot.mcp_wire import (
+from adoptforme_chatbot.mcp_wire import (
     ClientSession,
     ProtocolError,
     StdioTransport,
     StreamableHttpTransport,
     TransportError,
 )
-from adoptamatch_chatbot.mcp_wire.messages import (
+from adoptforme_chatbot.mcp_wire.messages import (
     ERROR_CODES,
     IdAllocator,
     classify,
@@ -42,10 +42,10 @@ from adoptamatch_chatbot.mcp_wire.messages import (
     raise_for_error,
     request,
 )
-from adoptamatch_chatbot.mcp_wire.transports import resolve_executable
+from adoptforme_chatbot.mcp_wire.transports import resolve_executable
 from tests.conftest import SERVERS_DIR
 
-PACKAGE_ROOT = Path(__file__).resolve().parents[1] / "src" / "adoptamatch_chatbot"
+PACKAGE_ROOT = Path(__file__).resolve().parents[1] / "src" / "adoptforme_chatbot"
 
 
 # --------------------------------------------------------------------- framing
@@ -316,7 +316,7 @@ class TestNoSdkAtRuntime:
     def test_importing_the_package_does_not_load_an_mcp_sdk(self) -> None:
         """Belt and braces: check the real import graph, not just the source text."""
         code = (
-            "import sys, adoptamatch_chatbot.cli, adoptamatch_chatbot.mcp_host.manager;"
+            "import sys, adoptforme_chatbot.cli, adoptforme_chatbot.mcp_host.manager;"
             "print([m for m in sys.modules if m == 'mcp' or m.startswith('mcp.')])"
         )
         completed = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=True)

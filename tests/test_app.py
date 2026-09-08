@@ -11,13 +11,13 @@ import json
 import pytest
 from rich.console import Console
 
-from adoptamatch_chatbot.app import COMMANDS, ChatApp
-from adoptamatch_chatbot.conversation import Conversation
-from adoptamatch_chatbot.llm.base import LLMError, LLMResponse, ToolCall
-from adoptamatch_chatbot.llm.scripted import ScriptedProvider
-from adoptamatch_chatbot.mcp_host.logger import InteractionLogger
-from adoptamatch_chatbot.mcp_host.manager import MCPManager
-from adoptamatch_chatbot.presentation import Presenter
+from adoptforme_chatbot.app import COMMANDS, ChatApp
+from adoptforme_chatbot.conversation import Conversation
+from adoptforme_chatbot.llm.base import LLMError, LLMResponse, ToolCall
+from adoptforme_chatbot.llm.scripted import ScriptedProvider
+from adoptforme_chatbot.mcp_host.logger import InteractionLogger
+from adoptforme_chatbot.mcp_host.manager import MCPManager
+from adoptforme_chatbot.presentation import Presenter
 
 
 def quiet_presenter() -> Presenter:
