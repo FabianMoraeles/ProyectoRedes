@@ -1,4 +1,4 @@
-# AdoptaMatch chatbot - MCP server inventory
+# AdoptForMe chatbot - MCP server inventory
 #
 # Copy this file to `servers.toml` and adjust the paths, then run the chatbot.
 # `servers.toml` is git-ignored so your local paths never reach the repository.
@@ -25,13 +25,13 @@
 # ---------------------------------------------------------------- own local server
 
 [[servers]]
-name = "adoptamatch"
+name = "adoptforme"
 transport = "stdio"
 enabled = true
 description = "Own server: shelter search, explainable matching, comparison, adoption"
 command = "uv"
-args = ["run", "adoptamatch-mcp"]
-cwd = "../../adoptamatch-mcp"
+args = ["run", "adoptforme-mcp"]
+cwd = "../../adoptforme-mcp"
 timeout_seconds = 30
 connect_timeout_seconds = 60
 

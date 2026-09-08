@@ -17,7 +17,7 @@ Read this first; it determines what can be captured at all.
 
 | Server | Transport | On the network? | What Wireshark can see |
 | --- | --- | --- | --- |
-| `adoptamatch` | stdio | **No** | Nothing. The host writes JSON-RPC to the subprocess's stdin and reads its stdout. Those are OS pipes: no socket, no IP, no port. |
+| `adoptforme` | stdio | **No** | Nothing. The host writes JSON-RPC to the subprocess's stdin and reads its stdout. Those are OS pipes: no socket, no IP, no port. |
 | `filesystem` | stdio | **No** | Nothing, same reason. |
 | `git` | stdio | **No** | Nothing, same reason. |
 | `pet_care_remote` (local) | Streamable HTTP, `http://127.0.0.1:8080/mcp` | **Yes**, on loopback | Everything, in cleartext: TCP, HTTP and the JSON-RPC bodies. |
@@ -530,7 +530,7 @@ HTTP client this host is built on uses that module.
 
 ```bash
 export SSLKEYLOGFILE="$PWD/logs/tls-keys.log"     # PowerShell: $env:SSLKEYLOGFILE="$PWD\logs\tls-keys.log"
-uv run adoptamatch-chatbot                        # against the https:// URL, capturing at the same time
+uv run adoptforme-chatbot                        # against the https:// URL, capturing at the same time
 
 # Wireshark ▸ Edit ▸ Preferences ▸ Protocols ▸ TLS
 #   "(Pre)-Master-Secret log filename" → logs/tls-keys.log

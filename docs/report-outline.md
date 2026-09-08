@@ -14,7 +14,7 @@ Suggested length: 12–18 pages including figures.
   the security boundary.
 - Why the *host* is the interesting part of this assignment: it is where routing,
   isolation, logging and transport choice actually live.
-- The business case: AdoptaMatch, an assistant for an animal shelter.
+- The business case: AdoptForMe, an assistant for an animal shelter.
 - Objectives, mapped one-to-one to the rubric. Say up front which are done and
   which are not; [`rubric-map.md`](rubric-map.md) already has that mapping with
   the evidence for each item, so this section can be a summary of it.
@@ -40,7 +40,7 @@ Suggested length: 12–18 pages including figures.
 
 ## 3. Own servers (2–3 pages)
 
-### 3.1 `adoptamatch` (local, stdio, public repository)
+### 3.1 `adoptforme` (local, stdio, public repository)
 
 - Data model, and why the compatibility flags are three-state.
 - The two-stage algorithm: hard rules, then the weighted score. Include the

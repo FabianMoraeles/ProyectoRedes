@@ -15,9 +15,9 @@ the student can take · **blocked** — waiting on something external.
 
 | | |
 | --- | --- |
-| Where | [`llm/anthropic_provider.py`](../src/adoptamatch_chatbot/llm/anthropic_provider.py), behind the provider-neutral interface in [`llm/base.py`](../src/adoptamatch_chatbot/llm/base.py) |
+| Where | [`llm/anthropic_provider.py`](../src/adoptforme_chatbot/llm/anthropic_provider.py), behind the provider-neutral interface in [`llm/base.py`](../src/adoptforme_chatbot/llm/base.py) |
 | Model | From `ANTHROPIC_MODEL`, never hard-coded. Default `claude-opus-5`. |
-| Verify | Set `ANTHROPIC_API_KEY` in `.env`, run `uv run adoptamatch-chatbot`, ask a general-knowledge question. `/logs` shows **zero** tool calls for that turn — proof the answer came from the model, not from a tool. |
+| Verify | Set `ANTHROPIC_API_KEY` in `.env`, run `uv run adoptforme-chatbot`, ask a general-knowledge question. `/logs` shows **zero** tool calls for that turn — proof the answer came from the model, not from a tool. |
 | Tests | `tests/test_app.py::test_a_plain_question_never_touches_a_tool`, plus every error path in `anthropic_provider.py`. |
 | Caveat | The code path has not been exercised against the live API in this workspace, because no API key is configured here. Everything else is tested with a scripted stand-in so the suite costs nothing. |
 
@@ -25,7 +25,7 @@ the student can take · **blocked** — waiting on something external.
 
 | | |
 | --- | --- |
-| Where | [`conversation.py`](../src/adoptamatch_chatbot/conversation.py). The whole message list — user turns, assistant turns including their `tool_use` blocks, and every `tool_result` — is resent on every request. |
+| Where | [`conversation.py`](../src/adoptforme_chatbot/conversation.py). The whole message list — user turns, assistant turns including their `tool_use` blocks, and every `tool_result` — is resent on every request. |
 | Verify | Ask "Tell me about Luna", then "And how much exercise does she need?". The second question names no animal and still resolves. |
 | Tests | `test_the_second_question_still_sees_the_first`, `test_tool_results_stay_in_context_for_the_next_question`, `test_history_trimming_never_orphans_a_tool_result`. |
 
@@ -33,7 +33,7 @@ the student can take · **blocked** — waiting on something external.
 
 | | |
 | --- | --- |
-| Where | [`mcp_host/logger.py`](../src/adoptamatch_chatbot/mcp_host/logger.py) |
+| Where | [`mcp_host/logger.py`](../src/adoptforme_chatbot/mcp_host/logger.py) |
 | Files | `logs/session-<uuid>.jsonl` (host level, request/response correlated by `request_id`), `logs/session-<uuid>.wire.jsonl` (**every JSON-RPC frame in both directions**, classified), `logs/session-<uuid>.<server>.stderr.log` |
 | Show | The `/logs` command prints the paths, a summary, the JSON-RPC frame counts by kind, and the last ten events. |
 | Verify | `uv run python scripts/demo_filesystem_git.py`, then read `logs/`. |
@@ -54,11 +54,11 @@ the student can take · **blocked** — waiting on something external.
 
 | | |
 | --- | --- |
-| Repository | `adoptamatch-mcp` — separate, independent, to be made **public** |
+| Repository | `adoptforme-mcp` — separate, independent, to be made **public** |
 | Tools | `search_animals`, `get_animal_details`, `recommend_animals`, `compare_animals`, `register_adoption` |
 | Why not trivial | Hard household safety rules applied before scoring; a deterministic, explainable 0–100 score over six weighted dimensions whose written justifications are generated from the same components as the number; three-state compatibility flags where "unknown" never excludes but always costs points and raises a concern; a transactional adoption guarded by a `UNIQUE` constraint. |
 | Specification | That repository's README, and [`server-specifications.md`](server-specifications.md) § 1. |
-| Tests | 79 in `adoptamatch-mcp`. |
+| Tests | 79 in `adoptforme-mcp`. |
 | **Pending** | Confirm the chosen functionality with the professor, as § 3.1 requires, and publish the repository. |
 
 ## MCP servers, part two (45 %)
@@ -97,7 +97,7 @@ This cannot be completed until the class publishes its repositories.
 
 [`server-specifications.md`](server-specifications.md) gives both servers in full:
 parameters with types and constraints, outputs, errors, endpoints, and worked
-examples. The public repository's README repeats the AdoptaMatch half for people
+examples. The public repository's README repeats the AdoptForMe half for people
 who only clone that one.
 
 ### 10. What happens at the link, network, transport and application layers — **template ready**
@@ -118,7 +118,7 @@ prompts for the conclusions only you can write.
 | Requirement | Status |
 | --- | --- |
 | Private repository | The chatbot repository is local and unpublished. **Pending**: create it as private and grant access to the teaching accounts. |
-| Public, independent repository for the local MCP server | `adoptamatch-mcp` is a separate repository with its own history, licence and README. **Pending**: publish it. |
+| Public, independent repository for the local MCP server | `adoptforme-mcp` is a separate repository with its own history, licence and README. **Pending**: publish it. |
 | README in English, install-and-run from a clean clone | Done, and verified: both repositories were cloned into an empty directory and brought up following only the README. |
 | Code documented | Every module has a docstring explaining *why*, not only *what*; every non-obvious decision carries a comment. |
 | Commit messages in English | Done. |
@@ -136,18 +136,18 @@ learned — with a demo script and a contingency plan.
 
 | | |
 | --- | --- |
-| Client | [`mcp_wire/`](../src/adoptamatch_chatbot/mcp_wire) — framing, both transports, the session lifecycle |
-| Servers | `minimcp.py`, vendored identically into `adoptamatch-mcp` and `pet_care_mcp` |
+| Client | [`mcp_wire/`](../src/adoptforme_chatbot/mcp_wire) — framing, both transports, the session lifecycle |
+| Servers | `minimcp.py`, vendored identically into `adoptforme-mcp` and `pet_care_mcp` |
 | Runtime dependencies | No MCP SDK in any of the three projects. Enforced by tests: no module imports one, importing the package never loads one, and the declared runtime dependencies contain none. |
 | Wire compatibility | Proved in both directions. The official SDK client drives both hand-written servers (stdio and Streamable HTTP, in both of its negotiation modes); the hand-written client drives official SDK servers, the reference Filesystem server (`npx`) and the reference Git server (`uvx`). The SDK is a **test-only** dependency, used as a conformance oracle. |
 | Coverage of the required functionality | All of it: the host, both own servers, and the integrations with the two official reference servers, all run on the hand-written implementation. |
-| Verify | `uv run pytest -q tests/test_mcp_wire.py` and `uv run adoptamatch-chatbot --offline --check`. |
+| Verify | `uv run pytest -q tests/test_mcp_wire.py` and `uv run adoptforme-chatbot --offline --check`. |
 
 ### Extra B — A considered user interface (+15 %) · **done**
 
 | | |
 | --- | --- |
-| Implementation | [`presentation.py`](../src/adoptamatch_chatbot/presentation.py) — the only module that writes to the console |
+| Implementation | [`presentation.py`](../src/adoptforme_chatbot/presentation.py) — the only module that writes to the console |
 | Rationale | [`ui-design.md`](ui-design.md): visual hierarchy, semantic colour, the rule that colour is never the only signal, a fixed glyph vocabulary with an ASCII fallback, feedback and system status, recognition over recall, actionable error recovery, progressive disclosure via `/verbose`, and what was deliberately left out |
 | Accessibility | `--no-color`, `NO_COLOR`, `--ascii`, width-adaptive layout, and every state carried by a glyph and a word as well as a colour |
 | Verify | Run the same scenario with and without `--no-color`; nothing becomes ambiguous. |
@@ -158,7 +158,7 @@ learned — with a demo script and a contingency plan.
 
 ```bash
 # public server: 79 tests
-cd adoptamatch-mcp        && uv run pytest -q && uv run ruff check .
+cd adoptforme-mcp        && uv run pytest -q && uv run ruff check .
 
 # host: 88 tests, including the no-MCP-SDK guarantee
 cd ../adoptamatch-chatbot && uv run pytest -q && uv run ruff check .
@@ -167,6 +167,6 @@ cd ../adoptamatch-chatbot && uv run pytest -q && uv run ruff check .
 cd remote_server          && uv run pytest -q && uv run ruff check .
 
 # everything connected, end to end
-cd .. && uv run adoptamatch-chatbot --offline --check
+cd .. && uv run adoptforme-chatbot --offline --check
 uv run python scripts/demo_filesystem_git.py
 ```

@@ -138,7 +138,7 @@ connect_timeout_seconds = 60
 Then:
 
 ```bash
-uv run adoptamatch-chatbot --offline --check
+uv run adoptforme-chatbot --offline --check
 ```
 
 ### Watch the logs

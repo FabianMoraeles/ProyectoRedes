@@ -1,4 +1,4 @@
-# AdoptaMatch Chatbot — a console MCP host
+# AdoptForMe Chatbot — a console MCP host
 
 A terminal chatbot that acts as an **MCP host**: it talks to one language model,
 connects to several [Model Context Protocol](https://modelcontextprotocol.io/)
@@ -7,14 +7,14 @@ the right server, and writes every request and response to a persistent audit lo
 
 **The MCP protocol is implemented here, directly over JSON-RPC 2.0 — no MCP SDK.**
 Framing, both transports and the session lifecycle live in
-[`mcp_wire/`](src/adoptamatch_chatbot/mcp_wire); the official SDK is a *test-only*
+[`mcp_wire/`](src/adoptforme_chatbot/mcp_wire); the official SDK is a *test-only*
 dependency, used as a conformance oracle to prove wire compatibility in both
 directions.
 
-The business case is AdoptaMatch: an assistant for an animal shelter that searches
+The business case is AdoptForMe: an assistant for an animal shelter that searches
 animals, explains how well each one fits a household, compares candidates and
 registers adoptions. The shelter data lives in a separate public MCP server,
-[`adoptamatch-mcp`](../adoptamatch-mcp); this repository is the host.
+[`adoptforme-mcp`](../adoptforme-mcp); this repository is the host.
 
 ---
 
@@ -82,7 +82,7 @@ you ───▶│ cli.py · presentation │  or ──▶│ web/server.py   
                       │  anthropic_... │  │  route · timeout · close   │
                       │  scripted.py   │  └───┬────────────────────────┘
                       └───────┬────────┘      │
-                              │               ├── stdio ──▶ adoptamatch  (own, public repo)
+                              │               ├── stdio ──▶ adoptforme  (own, public repo)
                               │               ├── stdio ──▶ filesystem   (official reference)
                               │               ├── stdio ──▶ git          (official reference)
                               │               ├── stdio ──▶ classmate ×N (see server-specifications.md)
@@ -150,7 +150,7 @@ needs.
 | `mcp_wire/session.py` | The lifecycle above, plus `tools/list` pagination and result normalisation |
 
 The servers use the same approach: `minimcp.py`, one self-contained module
-vendored identically into `adoptamatch-mcp` and `pet_care_mcp`.
+vendored identically into `adoptforme-mcp` and `pet_care_mcp`.
 
 ### How the claim is verified
 
@@ -170,7 +170,7 @@ implementation that only talks to itself proves nothing:
 
 | Direction | What it shows |
 | --- | --- |
-| Official SDK client → hand-written servers | `adoptamatch` over stdio and `pet-care` over Streamable HTTP both satisfy a reference client, in both of its negotiation modes |
+| Official SDK client → hand-written servers | `adoptforme` over stdio and `pet-care` over Streamable HTTP both satisfy a reference client, in both of its negotiation modes |
 | Hand-written client → official SDK servers | The fixture servers in `tests/servers/` are built with the SDK on purpose, so every test in `test_manager.py` is also an interop test |
 | Hand-written client → real third-party servers | The reference Filesystem (`npx`) and Git (`uvx`) servers connect and run tools, verified by `--check` and by `scripts/demo_filesystem_git.py` |
 
@@ -220,7 +220,7 @@ Adding a third provider is one new class implementing `complete()` and
 - **Git** — only for the official Git server, launched via `uvx`.
 - An **Anthropic or Gemini API key** (see "LLM provider" above), unless you run
   with `--offline`.
-- The sibling repository [`adoptamatch-mcp`](../adoptamatch-mcp) cloned next to
+- The sibling repository [`adoptforme-mcp`](../adoptforme-mcp) cloned next to
   this one, if you want the shelter tools.
 
 ### Windows and Linux
@@ -253,8 +253,8 @@ the default relative path in `servers.toml` resolves:
 
 ```bash
 cd ..
-git clone https://github.com/FabianMoraeles/adoptamatch-mcp.git
-cd adoptamatch-mcp && uv sync && cd ../adoptamatch-chatbot
+git clone https://github.com/FabianMoraeles/adoptforme-mcp.git
+cd adoptforme-mcp && uv sync && cd ../adoptamatch-chatbot
 ```
 
 For the Filesystem and Git scenario, create the scoped demo areas once:
@@ -262,14 +262,14 @@ For the Filesystem and Git scenario, create the scoped demo areas once:
 ```bash
 mkdir -p demo_workspace
 git init -b main demo_workspace/demo-repo
-git -C demo_workspace/demo-repo config user.name  "AdoptaMatch Demo"
+git -C demo_workspace/demo-repo config user.name  "AdoptForMe Demo"
 git -C demo_workspace/demo-repo config user.email "demo@example.invalid"
 ```
 
 Verify the whole wiring without spending a token:
 
 ```bash
-uv run adoptamatch-chatbot --offline --check
+uv run adoptforme-chatbot --offline --check
 ```
 
 That connects every enabled server, lists the discovered tools and exits.
@@ -301,13 +301,13 @@ comments of [`config/servers.example.toml`](config/servers.example.toml).
 
 ```toml
 [[servers]]
-name = "adoptamatch"                  # unique; used in logs and to qualify tool names
+name = "adoptforme"                  # unique; used in logs and to qualify tool names
 transport = "stdio"                   # "stdio" | "streamable-http"
 enabled = true
 description = "Own server: shelter search, matching, adoption"
 command = "uv"
-args = ["run", "adoptamatch-mcp"]
-cwd = "../../adoptamatch-mcp"         # resolved RELATIVE TO THIS FILE
+args = ["run", "adoptforme-mcp"]
+cwd = "../../adoptforme-mcp"         # resolved RELATIVE TO THIS FILE
 timeout_seconds = 30                  # per tools/call
 connect_timeout_seconds = 60          # ceiling on one connection attempt
 
@@ -336,12 +336,12 @@ not accept a dot. `/tools` shows both names.
 ## Running the chatbot
 
 ```bash
-uv run adoptamatch-chatbot                 # normal run
-uv run adoptamatch-chatbot --offline       # no API key; scripted stand-in
-uv run adoptamatch-chatbot --check         # connect, list tools, exit
-uv run adoptamatch-chatbot --model claude-sonnet-5
-uv run adoptamatch-chatbot --servers path/to/other.toml
-uv run adoptamatch-chatbot --no-protocol-log
+uv run adoptforme-chatbot                 # normal run
+uv run adoptforme-chatbot --offline       # no API key; scripted stand-in
+uv run adoptforme-chatbot --check         # connect, list tools, exit
+uv run adoptforme-chatbot --model claude-sonnet-5
+uv run adoptforme-chatbot --servers path/to/other.toml
+uv run adoptforme-chatbot --no-protocol-log
 ```
 
 `--offline` replaces the model with a small keyword router. It is **not** a
@@ -354,12 +354,12 @@ cost. Anything it says is labelled `Offline mode:`.
 A browser chat, as an alternative to the terminal:
 
 ```bash
-uv run adoptamatch-chatbot-web                 # http://127.0.0.1:8765
-uv run adoptamatch-chatbot-web --offline
-uv run adoptamatch-chatbot-web --host 0.0.0.0 --port 8080
+uv run adoptforme-chatbot-web                 # http://127.0.0.1:8765
+uv run adoptforme-chatbot-web --offline
+uv run adoptforme-chatbot-web --host 0.0.0.0 --port 8080
 ```
 
-This is a second *presentation layer*, not a second host: `adoptamatch_chatbot.web`
+This is a second *presentation layer*, not a second host: `adoptforme_chatbot.web`
 drives the exact same `ChatApp`, `MCPManager` and `LLMProvider` the terminal uses.
 `web/presenter.py` implements the same six methods `ChatApp.handle_message` calls
 on `Presenter` — `thinking`, `tool_call`, `tool_result`, `assistant`, `warn`,
@@ -398,7 +398,7 @@ Ctrl-D and Ctrl-C also leave cleanly: shutdown lives in a `finally` block.
 2. Test it in isolation with MCP Inspector:
    `npx @modelcontextprotocol/inspector <command> <args>`.
 3. Add a `[[servers]]` entry to `config/servers.toml` with `enabled = false`.
-4. Run `uv run adoptamatch-chatbot --offline --check`; the entry is listed as
+4. Run `uv run adoptforme-chatbot --offline --check`; the entry is listed as
    `disabled`.
 5. Flip `enabled = true` and re-run `--check`. Confirm it reports `connected` and
    the expected number of tools.
@@ -456,7 +456,7 @@ In short:
 1. **General knowledge** — a question with no tool call, proving the LLM link.
 2. **Context retention** — two related questions where the second only makes sense
    given the first.
-3. **AdoptaMatch** — describe a household, get explained recommendations, compare
+3. **AdoptForMe** — describe a household, get explained recommendations, compare
    two candidates, register an adoption, then try to adopt the same animal twice.
 4. **Filesystem + Git** — create a directory and a `README.md` through the
    Filesystem server, then stage and commit it through the Git server, and show in
@@ -531,9 +531,9 @@ the rules it follows:
   for terminals that cannot render the glyphs, and a width-adaptive layout.
 
 ```bash
-uv run adoptamatch-chatbot --offline --verbose   # full arguments and results
-uv run adoptamatch-chatbot --offline --no-color  # semantics survive without colour
-uv run adoptamatch-chatbot --offline --ascii     # ASCII glyph set
+uv run adoptforme-chatbot --offline --verbose   # full arguments and results
+uv run adoptforme-chatbot --offline --no-color  # semantics survive without colour
+uv run adoptforme-chatbot --offline --ascii     # ASCII glyph set
 ```
 
 **The browser front end (see [Web interface](#web-interface) above) follows the
@@ -578,7 +578,7 @@ the source.
 | `filesystem` fails to start | Node.js is missing, or the scoped directory does not exist. Run `mkdir demo_workspace`. |
 | `git` fails to start | `uvx` is missing, or `demo_workspace/demo-repo` is not a repository. Run `git init demo_workspace/demo-repo`. |
 | `git_*` returns "outside the allowed repository" | Pass `repo_path` as the path the server was launched with (`demo_workspace/demo-repo`), not `.`. |
-| `adoptamatch` fails to start | The sibling repository is missing or not installed. Clone it next to this one and run `uv sync` there. |
+| `adoptforme` fails to start | The sibling repository is missing or not installed. Clone it next to this one and run `uv sync` there. |
 | The remote server shows `failed` | It is not running, or the port differs. Check `curl http://127.0.0.1:8080/healthz`. |
 | A tool result looks truncated in the log | Only in the log: payloads over 4000 characters are capped there. The model received the full result. |
 | Unreadable server output on the console | It should not appear — stdio servers' stderr goes to `logs/session-<id>.<server>.stderr.log`. Look there for the real error. |
@@ -610,7 +610,7 @@ the source.
 
 ```text
 adoptamatch-chatbot/
-├── src/adoptamatch_chatbot/
+├── src/adoptforme_chatbot/
 │   ├── cli.py                  entry point: parse, validate, connect, run, close
 │   ├── app.py                  conversation loop and console commands
 │   ├── config.py               .env + servers.toml loading and validation
@@ -621,7 +621,7 @@ adoptamatch-chatbot/
 │   │   ├── anthropic_provider.py
 │   │   ├── gemini_provider.py  free alternative (LLM_PROVIDER=gemini)
 │   │   └── scripted.py         test double and --offline router
-│   ├── web/                 optional browser front end (adoptamatch-chatbot-web)
+│   ├── web/                 optional browser front end (adoptforme-chatbot-web)
 │   │   ├── presenter.py        Presenter's six ChatApp-facing methods, as JSON events
 │   │   ├── server.py           Starlette app + WebSocket protocol
 │   │   └── static/index.html   the page itself: no framework, no CDN
@@ -657,5 +657,5 @@ adoptamatch-chatbot/
 
 ## Related repository
 
-[`adoptamatch-mcp`](https://github.com/FabianMoraeles/adoptamatch-mcp) — the public
+[`adoptforme-mcp`](https://github.com/FabianMoraeles/adoptforme-mcp) — the public
 MCP server with the shelter tools and the explainable matching algorithm.

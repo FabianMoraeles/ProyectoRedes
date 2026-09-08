@@ -78,14 +78,14 @@ an answer.
 4. **Verify it is listed but not connected:**
 
    ```bash
-   uv run adoptamatch-chatbot --offline --check
+   uv run adoptforme-chatbot --offline --check
    ```
 
 5. **Enable it and connect:**
 
    ```bash
    # flip enabled = true, then
-   uv run adoptamatch-chatbot --offline --check
+   uv run adoptforme-chatbot --offline --check
    ```
 
    Confirm `connected`, the tool count, and the negotiated protocol version.

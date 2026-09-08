@@ -6,7 +6,7 @@ feedback, error recovery, accessibility — applies here too, and a terminal mak
 the mistakes more visible because there is nowhere to hide a bad layout.
 
 This document explains *why* the interface looks the way it does. The
-implementation is [`src/adoptamatch_chatbot/presentation.py`](../src/adoptamatch_chatbot/presentation.py),
+implementation is [`src/adoptforme_chatbot/presentation.py`](../src/adoptforme_chatbot/presentation.py),
 and it is the only module allowed to write to the console.
 
 ---
@@ -181,11 +181,11 @@ nobody finds, or drowning the default view to satisfy the rare case.
 ## 11. Try it
 
 ```bash
-uv run adoptamatch-chatbot --offline          # the default, compact
-uv run adoptamatch-chatbot --offline --verbose  # full arguments and results
-uv run adoptamatch-chatbot --offline --no-color # semantics survive without colour
-uv run adoptamatch-chatbot --offline --ascii    # ASCII glyph set
-NO_COLOR=1 uv run adoptamatch-chatbot --offline # the environment convention
+uv run adoptforme-chatbot --offline          # the default, compact
+uv run adoptforme-chatbot --offline --verbose  # full arguments and results
+uv run adoptforme-chatbot --offline --no-color # semantics survive without colour
+uv run adoptforme-chatbot --offline --ascii    # ASCII glyph set
+NO_COLOR=1 uv run adoptforme-chatbot --offline # the environment convention
 ```
 
 Running the same scenario under `--no-color` and confirming it is still fully
@@ -194,7 +194,7 @@ holds after a change.
 
 ## 12. The browser front end
 
-`adoptamatch-chatbot-web` ([`src/adoptamatch_chatbot/web/static/index.html`](../src/adoptamatch_chatbot/web/static/index.html))
+`adoptforme-chatbot-web` ([`src/adoptforme_chatbot/web/static/index.html`](../src/adoptforme_chatbot/web/static/index.html))
 is the same design translated to a different medium, not a different design.
 Every rule above still applies, just rendered differently because a browser
 offers things a terminal cannot:

@@ -8,7 +8,7 @@ Before starting:
 ```bash
 rm -f logs/*.jsonl logs/*.log          # a clean log makes the demo legible
 git -C demo_workspace/demo-repo log --oneline   # note the starting point
-uv run adoptamatch-chatbot
+uv run adoptforme-chatbot
 ```
 
 Show the start-up table: eight configured servers, connected (`pet_care_remote`
@@ -57,7 +57,7 @@ I live in an apartment with my two kids and one cat. I can walk a dog about 45 m
 
 Point out:
 
-- one `recommend_animals` call, routed to `adoptamatch`, timed in the console;
+- one `recommend_animals` call, routed to `adoptforme`, timed in the console;
 - the answer names real animals with real ids — all of it from the tool result;
 - the *exclusions*: animals removed by a hard rule before scoring, with the reason;
 - the *concerns*, not just the reasons.

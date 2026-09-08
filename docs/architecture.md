@@ -12,9 +12,9 @@ MCP separates three roles. Being precise about them explains most of the design.
 
 | Role | Who plays it here | Responsibility |
 | --- | --- | --- |
-| **Host** | `adoptamatch-chatbot` | Owns the conversation, the model, the security boundary and the log. Decides *which* servers exist and *what* the model is allowed to see. |
+| **Host** | `adoptforme-chatbot` | Owns the conversation, the model, the security boundary and the log. Decides *which* servers exist and *what* the model is allowed to see. |
 | **Client** | One `mcp_wire.ClientSession` per server, inside `MCPManager` | Speaks JSON-RPC to exactly one server. Owns the handshake, the session id and the transport. |
-| **Server** | `adoptamatch`, `filesystem`, `git`, `pet-care`, classmates' | Exposes tools. Knows nothing about the model or the other servers. |
+| **Server** | `adoptforme`, `filesystem`, `git`, `pet-care`, classmates' | Exposes tools. Knows nothing about the model or the other servers. |
 
 One host, several clients, several servers. A server never learns that other
 servers exist, and the model never learns which server it is talking to except
@@ -57,7 +57,7 @@ through the name the host prefixes onto each tool description.
 └───────────────────────────────────────────────────────────────────────────────────────┘
         │ stdio (pipes)                                   │ Streamable HTTP (TCP)
         ▼                                                 ▼
-  adoptamatch · filesystem · git · classmate ×2      pet-care (local or deployed)
+  adoptforme · filesystem · git · classmate ×2      pet-care (local or deployed)
 ```
 
 ## Key decisions, and why
@@ -108,7 +108,7 @@ and MCP specifications. Three consequences worth stating:
   as the reference Filesystem (`npx`) and Git (`uvx`) servers.
 
 The servers use the same approach: `minimcp.py`, a single self-contained module
-vendored identically into `adoptamatch-mcp` and `pet_care_mcp`.
+vendored identically into `adoptforme-mcp` and `pet_care_mcp`.
 
 ### One session per server, closed independently
 
@@ -178,7 +178,7 @@ classmate placeholders ship disabled.
 
 ### One host, two presentation layers
 
-`adoptamatch_chatbot.web` (a browser chat, `adoptamatch-chatbot-web`) exists
+`adoptforme_chatbot.web` (a browser chat, `adoptforme-chatbot-web`) exists
 alongside the terminal, not instead of it. `ChatApp.handle_message` was already
 written against a narrow six-method surface of `Presenter` (`thinking`,
 `tool_call`, `tool_result`, `assistant`, `warn`, `error`), called live and

@@ -6,17 +6,17 @@ summarised with a pointer to their upstream documentation.
 
 ---
 
-## 1. `adoptamatch` — own local server
+## 1. `adoptforme` — own local server
 
 | | |
 | --- | --- |
-| Repository | <https://github.com/FabianMoraeles/adoptamatch-mcp> (public) |
+| Repository | <https://github.com/FabianMoraeles/adoptforme-mcp> (public) |
 | Transport | stdio |
-| Launched as | `uv run adoptamatch-mcp`, cwd `../../adoptamatch-mcp` |
+| Launched as | `uv run adoptforme-mcp`, cwd `../../adoptforme-mcp` |
 | Endpoint | none — stdin/stdout of the subprocess |
-| Storage | SQLite, `data/adoptamatch.sqlite3` |
+| Storage | SQLite, `data/adoptforme.sqlite3` |
 | Protocol | JSON-RPC 2.0, hand-written in `minimcp.py`; **no MCP SDK** |
-| Full specification | [that repository's README](https://github.com/FabianMoraeles/adoptamatch-mcp#tool-specification) |
+| Full specification | [that repository's README](https://github.com/FabianMoraeles/adoptforme-mcp#tool-specification) |
 
 Five tools:
 
@@ -172,7 +172,7 @@ machines. The real, local `config/servers.toml` (git-ignored) has
 **Confirms a provider fix, not a server-specific one.** Gemini's thinking models
 attach an opaque `thought_signature` to a `function_call` part that must be
 replayed unchanged on the next request; that bug was first found and fixed
-against `adoptamatch`'s `recommend_animals` (see `llm/gemini_provider.py`). Both
+against `adoptforme`'s `recommend_animals` (see `llm/gemini_provider.py`). Both
 classmate integrations are additional, independently-written servers the fix was
 verified against — evidence it lives in `GeminiProvider` where it belongs, not
 patched around one server's quirks.
@@ -221,10 +221,10 @@ servers at once.
 Run this to regenerate the current list:
 
 ```bash
-uv run adoptamatch-chatbot --offline --check
+uv run adoptforme-chatbot --offline --check
 ```
 
 At the time of writing, with all eight available servers connected: **63 tools**
-across `adoptamatch` (5), `filesystem` (14), `git` (12), `pet_care_remote` (2),
+across `adoptforme` (5), `filesystem` (14), `git` (12), `pet_care_remote` (2),
 `academic_planner` (8), `spring_architecture` (7), `brewops` (9) and
 `rrhh_construccion` (6), with no name collisions — so no tool needed qualifying.

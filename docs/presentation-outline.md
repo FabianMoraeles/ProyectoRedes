@@ -5,7 +5,7 @@ evidence beats prose on every slide.
 
 ## Slide 1 — Title (15 s)
 
-AdoptaMatch: a console MCP host. Your name, course, date. One line on what it is:
+AdoptForMe: a console MCP host. Your name, course, date. One line on what it is:
 "one language model, six MCP servers, two transports, one audit log."
 
 ## Slide 2 — The problem (45 s)
@@ -25,7 +25,7 @@ point at who plays each. Highlight the two transports.
 
 | | |
 | --- | --- |
-| Own local server | `adoptamatch`, 5 tools, public repository |
+| Own local server | `adoptforme`, 5 tools, public repository |
 | Own remote server | `pet-care`, 2 tools, Streamable HTTP |
 | Official servers | Filesystem, Git — both scoped |
 | Classmates' servers | [fill in] |
