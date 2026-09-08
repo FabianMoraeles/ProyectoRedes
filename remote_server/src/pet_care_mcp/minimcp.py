@@ -7,7 +7,7 @@ and dispatched here, against the protocol specification:
 * JSON-RPC 2.0  https://www.jsonrpc.org/specification
 
 VENDORED FILE. The canonical copy lives in the public repository
-``adoptamatch-mcp`` at ``src/adoptamatch_mcp/minimcp.py``. The copy inside
+``adoptforme-mcp`` at ``src/adoptforme_mcp/minimcp.py``. The copy inside
 ``pet_care_mcp`` is byte-identical on purpose: the two servers must be
 independently installable, and a single shared file is easier to audit than two
 divergent implementations. Change one, copy to the other.

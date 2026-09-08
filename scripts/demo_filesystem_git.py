@@ -4,7 +4,7 @@ Why this exists
 ---------------
 The scenario in ``config/demo-prompts.md`` is meant to be driven by the model in
 natural language. This script performs the *same* MCP calls through the *same*
-:class:`~adoptamatch_chatbot.mcp_host.manager.MCPManager`, with the model replaced
+:class:`~adoptforme_chatbot.mcp_host.manager.MCPManager`, with the model replaced
 by a fixed plan. Two uses:
 
 * a contingency for the live demo -- if the API is unreachable, the MCP half of
@@ -28,10 +28,10 @@ import sys
 from datetime import date
 from pathlib import Path
 
-from adoptamatch_chatbot.config import ConfigError, load_config
-from adoptamatch_chatbot.mcp_host.logger import InteractionLogger
-from adoptamatch_chatbot.mcp_host.manager import MCPManager
-from adoptamatch_chatbot.presentation import Presenter
+from adoptforme_chatbot.config import ConfigError, load_config
+from adoptforme_chatbot.mcp_host.logger import InteractionLogger
+from adoptforme_chatbot.mcp_host.manager import MCPManager
+from adoptforme_chatbot.presentation import Presenter
 
 #: Path of the demo repository as the Git server sees it (relative to the cwd it
 #: was launched with, which servers.toml sets to the chatbot repository root).
@@ -39,7 +39,7 @@ REPO = "demo_workspace/demo-repo"
 
 README_BODY = f"""# Shelter notes
 
-Created by the AdoptaMatch chatbot through the official Filesystem MCP server
+Created by the AdoptForMe chatbot through the official Filesystem MCP server
 on {date.today().isoformat()}, then committed through the official Git MCP server.
 
 This file exists to demonstrate that the host routes each step to the right

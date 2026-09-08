@@ -37,8 +37,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from adoptamatch_chatbot.mcp_wire.messages import LIFECYCLE_METHODS, classify
-from adoptamatch_chatbot.presentation import Presenter
+from adoptforme_chatbot.mcp_wire.messages import LIFECYCLE_METHODS, classify
+from adoptforme_chatbot.presentation import Presenter
 
 WINDOWS_TSHARK = Path(r"C:\Program Files\Wireshark\tshark.exe")
 

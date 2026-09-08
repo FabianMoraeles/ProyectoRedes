@@ -10,7 +10,7 @@ and therefore the one the network analysis can actually observe.
 
 The protocol is implemented **directly over JSON-RPC 2.0** in
 [`minimcp.py`](src/pet_care_mcp/minimcp.py) — a verbatim copy of the file in the
-public `adoptamatch-mcp` repository. **No MCP SDK is used at runtime.**
+public `adoptforme-mcp` repository. **No MCP SDK is used at runtime.**
 
 ## Tools
 

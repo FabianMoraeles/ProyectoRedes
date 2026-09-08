@@ -8,7 +8,7 @@ conversation works, but it is not reproducible: the model decides how many calls
 to make and when.
 
 This script performs a fixed sequence against ``pet_care_remote`` only, through
-the same :class:`~adoptamatch_chatbot.mcp_host.manager.MCPManager` and the same
+the same :class:`~adoptforme_chatbot.mcp_host.manager.MCPManager` and the same
 hand-written client the chatbot uses. Every packet it produces is one of the
 messages listed below, in this order, so the capture can be read line by line.
 
@@ -41,11 +41,11 @@ import json
 import sys
 from pathlib import Path
 
-from adoptamatch_chatbot.config import ConfigError, load_config
-from adoptamatch_chatbot.mcp_host.logger import InteractionLogger
-from adoptamatch_chatbot.mcp_host.manager import MCPManager
-from adoptamatch_chatbot.mcp_host.models import ServerConfig
-from adoptamatch_chatbot.presentation import Presenter
+from adoptforme_chatbot.config import ConfigError, load_config
+from adoptforme_chatbot.mcp_host.logger import InteractionLogger
+from adoptforme_chatbot.mcp_host.manager import MCPManager
+from adoptforme_chatbot.mcp_host.models import ServerConfig
+from adoptforme_chatbot.presentation import Presenter
 
 DEFAULT_SERVER = "pet_care_remote"
 

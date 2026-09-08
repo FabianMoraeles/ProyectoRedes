@@ -2,7 +2,7 @@
 
 The protocol is implemented directly over JSON-RPC 2.0 in
 :mod:`pet_care_mcp.minimcp` (a verbatim copy of the file in the public
-``adoptamatch-mcp`` repository). **No MCP SDK is used.**
+``adoptforme-mcp`` repository). **No MCP SDK is used.**
 
 The business logic is deliberately simple. The point of this server is the
 *transport*: it is the component that puts MCP on a TCP socket, which is what the
