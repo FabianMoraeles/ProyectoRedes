@@ -9,7 +9,7 @@ resolution-markers = [
 ]
 
 [[package]]
-name = "adoptamatch-chatbot"
+name = "adoptforme-chatbot"
 version = "1.0.0"
 source = { editable = "." }
 dependencies = [
